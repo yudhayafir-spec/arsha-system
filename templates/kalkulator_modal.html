@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Kalkulator Modal - ATMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+
+    <!-- SIDEBAR KIRI -->
+    <aside class="w-64 bg-slate-900 text-white flex flex-col justify-between shadow-xl">
+        <div>
+            <div class="p-5 border-b border-slate-800 flex items-center space-x-3">
+                <div class="bg-green-500 text-slate-900 font-black p-2 rounded-lg text-lg">ATMS</div>
+                <div>
+                    <h1 class="font-bold text-sm">ARSHA TRANSFER</h1>
+                    <p class="text-[10px] text-slate-400">Management System</p>
+                </div>
+            </div>
+            <nav class="p-4 space-y-1">
+                <a href="/dashboard" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800">📊 <span>Dashboard</span></a>
+                <a href="/transaksi" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800">💸 <span>Tools Transaksi</span></a>
+                <a href="/kalkulator-modal" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium bg-green-600 text-white">🧮 <span>Kalkulator Modal</span></a>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-slate-800 bg-slate-950/50">
+            <p class="text-xs text-slate-400">Login:</p>
+            <p class="text-sm font-bold text-white">{{ user.nama_lengkap }}</p>
+        </div>
+    </aside>
+
+    <!-- KONTEN UTAMA -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto p-8 max-w-3xl">
+        <h2 class="text-2xl font-bold text-gray-800 mb-1">Kalkulator Pengecekan Modal & Saldo</h2>
+        <p class="text-xs text-gray-500 mb-6">Pastikan kas pas dan tidak ada selisih minus.</p>
+
+        <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-xs space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-700">Modal Utama Awal (Rp)</label>
+                <input type="number" id="modal" oninput="hitung()" class="w-full mt-1 p-2.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500" placeholder="0">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700">Uang Cash di Laci (Rp)</label>
+                <input type="number" id="cash" oninput="hitung()" class="w-full mt-1 p-2.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500" placeholder="0">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700">Uang yang Mengendap di Saldo Bank/E-Wallet (Rp)</label>
+                <input type="number" id="saldo" oninput="hitung()" class="w-full mt-1 p-2.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500" placeholder="0">
+            </div>
+
+            <div class="pt-4 border-t border-gray-100">
+                <p class="text-xs font-semibold text-gray-500 uppercase">Hasil Selisih / Evaluasi:</p>
+                <h3 id="hasil" class="text-3xl font-black mt-1 text-gray-800">Rp 0</h3>
+            </div>
+
+            <div id="peringatan" class="hidden p-4 rounded-lg bg-red-100 border border-red-300 text-red-700 text-xs font-bold flex items-center space-x-2">
+                <span>⚠️ PERINGATAN: Terdeteksi selisih minus! Mohon periksa kembali kas fisik atau saldo mengendap Anda.</span>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function hitung() {
+            let modal = parseFloat(document.getElementById('modal').value) || 0;
+            let cash = parseFloat(document.getElementById('cash').value) || 0;
+            let saldo = parseFloat(document.getElementById('saldo').value) || 0;
+
+            let totalAset = cash + saldo;
+            let selisih = totalAset - modal;
+
+            let hasilElem = document.getElementById('hasil');
+            let peringatanElem = document.getElementById('peringatan');
+
+            hasilElem.innerText = "Rp " + selisih.toLocaleString('id-ID');
+
+            if (selisih < 0) {
+                hasilElem.className = "text-3xl font-black mt-1 text-red-600";
+                peringatanElem.classList.remove('hidden');
+            } else {
+                hasilElem.className = "text-3xl font-black mt-1 text-green-600";
+                peringatanElem.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

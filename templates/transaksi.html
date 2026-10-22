@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Tools Transaksi - ATMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+
+    <!-- SIDEBAR KIRI -->
+    <aside class="w-64 bg-slate-900 text-white flex flex-col justify-between shadow-xl">
+        <div>
+            <div class="p-5 border-b border-slate-800 flex items-center space-x-3">
+                <div class="bg-green-500 text-slate-900 font-black p-2 rounded-lg text-lg">ATMS</div>
+                <div>
+                    <h1 class="font-bold text-sm">ARSHA TRANSFER</h1>
+                    <p class="text-[10px] text-slate-400">Management System</p>
+                </div>
+            </div>
+            <nav class="p-4 space-y-1">
+                <a href="/dashboard" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800">📊 <span>Dashboard</span></a>
+                <a href="/transaksi" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium bg-green-600 text-white">💸 <span>Tools Transaksi</span></a>
+                <a href="/kalkulator-modal" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800">🧮 <span>Kalkulator Modal</span></a>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-slate-800 bg-slate-950/50">
+            <p class="text-xs text-slate-400">Login:</p>
+            <p class="text-sm font-bold text-white">{{ user.nama_lengkap }}</p>
+        </div>
+    </aside>
+
+    <!-- KONTEN UTAMA -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto p-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-1">Input Transaksi & Struk Pembayaran</h2>
+        <p class="text-xs text-gray-500 mb-6">Kp. Batuiuh RT 002 RW 002 Desa Gunamekar, Bungbulang, Garut</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-xs">
+                <form action="/transaksi" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700">Nama Pelanggan</label>
+                        <input type="text" name="nama_pelanggan" required class="w-full mt-1 p-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700">Nomor WhatsApp (Contoh: 628xxxxxxxxxx)</label>
+                        <input type="text" name="no_wa" required placeholder="628..." class="w-full mt-1 p-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700">Jenis Transaksi</label>
+                            <select name="jenis_transaksi" class="w-full mt-1 p-2 border rounded-lg text-sm outline-none">
+                                <option value="Transfer">Transfer</option>
+                                <option value="Top Up">Top Up E-Wallet</option>
+                                <option value="Tarik Tunai">Tarik Tunai</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700">Bank / E-Wallet</label>
+                            <select name="bank_wallet" class="w-full mt-1 p-2 border rounded-lg text-sm outline-none">
+                                <option value="BRI">BRI</option>
+                                <option value="BCA">BCA</option>
+                                <option value="DANA">DANA</option>
+                                <option value="SeaBank">SeaBank</option>
+                                <option value="ShopeePay">ShopeePay</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700">Nominal (Rp)</label>
+                            <input type="number" name="nominal" required class="w-full mt-1 p-2 border rounded-lg text-sm outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700">Biaya Admin / Profit (Rp)</label>
+                            <input type="number" name="admin" required class="w-full mt-1 p-2 border rounded-lg text-sm outline-none">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-green-700 transition">Proses & Cetak Struk</button>
+                </form>
+            </div>
+
+            <div>
+                {% if struk %}
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-md space-y-4">
+                    <div id="area-struk" class="bg-slate-50 p-6 rounded-lg border border-dashed border-slate-300 text-slate-800 font-mono text-xs space-y-2">
+                        <div class="text-center pb-2 border-b border-slate-200">
+                            <h3 class="font-black text-sm">ARSHA TRANSFER MANAGEMENT</h3>
+                            <p class="text-[10px] text-slate-500">Kp. Batuiuh RT 002 RW 002 Desa Gunamekar</p>
+                            <p class="text-[10px] text-slate-500">Kec. Bungbulang, Kab. Garut 44165</p>
+                        </div>
+                        <div class="py-2 space-y-1">
+                            <div class="flex justify-between"><span>Tanggal:</span> <span>{{ struk.tanggal }}</span></div>
+                            <div class="flex justify-between"><span>Pelanggan:</span> <span>{{ struk.nama }}</span></div>
+                            <div class="flex justify-between"><span>Layanan:</span> <span class="font-bold">{{ struk.jenis }} ({{ struk.bank }})</span></div>
+                        </div>
+                        <div class="py-2 border-t border-b border-slate-200 space-y-1">
+                            <div class="flex justify-between"><span>Nominal:</span> <span>Rp {{ "{:,.0f}".format(struk.nominal) }}</span></div>
+                            <div class="flex justify-between"><span>Biaya Admin:</span> <span>Rp {{ "{:,.0f}".format(struk.admin) }}</span></div>
+                        </div>
+                        <div class="flex justify-between font-bold pt-1 text-sm">
+                            <span>TOTAL BAYAR:</span> 
+                            <span>Rp {{ "{:,.0f}".format(struk.nominal + struk.admin) }}</span>
+                        </div>
+                        <div class="text-center pt-4 text-[10px] text-slate-400">
+                            <p>Terima kasih atas kepercayaan Anda</p>
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-3">
+                        <button onclick="downloadPDF()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700">Download PDF</button>
+                        <a href="https://wa.me/{{ struk.wa }}?text=Halo%20{{ struk.nama }},%20berikut%20bukti%20transaksi%20{{ struk.jenis }}%20sebesar%20Rp{{ struk.nominal }}%20di%20Arsha%20Transfer%20Management.%20Terima%20kasih!" target="_blank" class="flex-1 bg-emerald-600 text-center py-2 rounded-lg text-xs font-bold text-white hover:bg-emerald-700">Kirim ke WA</a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="bg-slate-100 p-12 rounded-xl border border-dashed border-slate-300 text-center text-slate-400 text-sm">
+                    Silakan isi form transaksi di samping untuk menerbitkan struk pembayaran.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function downloadPDF() {
+            const element = document.getElementById('area-struk');
+            html2pdf().from(element).save('Struk-ATMS.pdf');
+        }
+    </script>
+</body>
+</html>
