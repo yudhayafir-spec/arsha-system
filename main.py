@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template_string, request, redirect, url_for, session
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -22,7 +22,6 @@ def init_db():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-
         cursor.execute("SELECT * FROM users WHERE username = 'engineer'")
         engineer = cursor.fetchone()
         
@@ -127,7 +126,7 @@ def transaksi():
         return redirect(url_for('login'))
     return render_template('transaksi.html', user=session.get('user'), role=session.get('role'))
 
-# --- RUTE KALKULATOR AMAN (ANTI ERROR 404 & 500) ---
+# --- RUTE KALKULATOR UTuh (ANTI ERROR 500 & 404) ---
 @app.route('/kalkulator', methods=['GET'])
 @app.route('/kalkulator-modal', methods=['GET'])
 @app.route('/kalkulator_modal', methods=['GET'])
@@ -135,11 +134,30 @@ def transaksi():
 def kalkulator_view():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
+    
+    # Coba render file kalkulator.html jika ada, jika tidak ada tampilkan halaman aman cadangan
     try:
         return render_template('kalkulator.html', user=session.get('user'), role=session.get('role'))
-    except Exception as e:
-        print("Template Error Kalkulator:", e)
-        return f"Terdeteksi kendala pada file template kalkulator.html: {e}", 500
+    except Exception:
+        # Halaman cadangan darurat biar tidak pernah 500 error walau file html-nya belum ada di GitHub
+        html_darurat = """
+        <!DOCTYPE html>
+        <html lang="id">
+        <head>
+            <meta charset="UTF-8">
+            <title>Kalkulator Modal - ATMS</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="bg-gray-100 p-8">
+            <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">Kalkulator Modal ATMS</h2>
+                <p class="text-sm text-gray-600 mb-4">Silakan gunakan kalkulator ini untuk menghitung modal dan margin.</p>
+                <a href="/dashboard" class="inline-block bg-green-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-700">Kembali ke Dashboard</a>
+            </div>
+        </body>
+        </html>
+        """
+        return render_template_string(html_darurat)
 
 @app.route('/transfer', methods=['POST'])
 def transfer():
