@@ -1,135 +1,164 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+import os
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 import mysql.connector
-from random import randint
+from werkzeug.security import generate_password_hash, check_password_hash
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 
 app = Flask(__name__)
-app.secret_key = 'arsha_secret_key_123'
+app.secret_key = 'arsha_secret_key_system'
 
-# Koneksi ke Database XAMPP (MySQL)
+# --- KONEKSI DATABASE (TiDB Cloud) ---
 def get_db_connection():
     return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="arsha_db"
+        host="gateway01.ap-northeast-1.prod.aws.tidbcloud.com",
+        port=4000,
+        user="41V1NDmRAAsJj5J.root",
+        password="jWFwGdgJrpaHP0AP",
+        database="sys",
+        ssl_disabled=False
     )
 
-# Halaman Login
-@app.route('/', methods=['GET', 'POST'])
+# --- INISIALISASI TABEL & AKUN DEFAULT ---
+def init_db():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 1. Tabel Users
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(50) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                role VARCHAR(20) NOT NULL
+            )
+        """)
+
+        # 2. Tabel Transfer Logs
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS transfer_logs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                sender_name VARCHAR(100),
+                recipient_bank VARCHAR(50),
+                account_number VARCHAR(50),
+                recipient_name VARCHAR(100),
+                amount DECIMAL(15, 2),
+                admin_fee DECIMAL(15, 2),
+                total_pay DECIMAL(15, 2),
+                status VARCHAR(20) DEFAULT 'Success',
+                created_by VARCHAR(50),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Cek apakah akun engineer sudah ada
+        cursor.execute("SELECT * FROM users WHERE username = 'engineer'")
+        engineer = cursor.fetchone()
+        if not engineer:
+            hashed_pw = generate_password_hash("admin123")
+            cursor.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
+                           ('engineer', hashed_pw, 'Engineer'))
+            conn.commit()
+
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print("Database Init Error:", e)
+
+# Jalankan inisialisasi tabel saat aplikasi start
+init_db()
+
+# --- ROUTES ---
+
+@app.route('/')
+def index():
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        
+
         try:
-            db = get_db_connection()
-            cursor = db.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, password))
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
             user = cursor.fetchone()
             cursor.close()
-            db.close()
-            
-            if user:
-                session['user_id'] = user['id']
-                session['username'] = user['username']
+            conn.close()
+
+            if user and check_password_hash(user['password'], password):
+                session['user'] = user['username']
                 session['role'] = user['role']
-                session['nama_lengkap'] = user['nama_lengkap']
+                flash('Login berhasil!', 'success')
                 return redirect(url_for('dashboard'))
             else:
-                return render_template('login.html', error="Username atau Password salah!")
+                flash('Username atau password salah!', 'danger')
         except Exception as e:
-            return render_template('login.html', error=f"Database error: {str(e)}")
-            
+            flash(f'Database error: {e}', 'danger')
+
     return render_template('login.html')
 
-# Halaman Dashboard Web Utama (Menampilkan Histori Transaksi)
-@app.route('/dashboard')
-def dashboard():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-        
-    # Ambil data histori transaksi dari database
-    db = get_db_connection()
-    cursor = db.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM transactions ORDER BY id DESC")
-    transactions = cursor.fetchall()
-    cursor.close()
-    db.close()
-    
-    return render_template('dashboard.html', user=session, active_menu='dashboard', transactions=transactions)
-
-# Halaman Tools Transaksi (Transfer, Top Up, Tarik Tunai + Struk)
-@app.route('/transaksi', methods=['GET', 'POST'])
-def transaksi():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-        
-    struk_data = None
-    if request.method == 'POST':
-        nama = request.form.get('nama_pelanggan')
-        wa = request.form.get('no_wa')
-        jenis = request.form.get('jenis_transaksi')
-        bank = request.form.get('bank_wallet')
-        nominal = float(request.form.get('nominal', 0))
-        admin = float(request.form.get('admin', 0))
-        
-        # Simpan transaksi baru ke database MySQL
-        db = get_db_connection()
-        cursor = db.cursor()
-        cursor.execute("""
-            INSERT INTO transactions (kode_transaksi, tanggal, nama_pelanggan, transaksi_type, bank_wallet, total_transaksi, admin, profit) 
-            VALUES (%s, NOW(), %s, %s, %s, %s, %s, %s)
-        """, ('TRX-' + str(randint(1000, 9999)), nama, jenis, bank, nominal, admin, admin))
-        db.commit()
-        cursor.close()
-        db.close()
-
-        struk_data = {
-            'nama': nama,
-            'wa': wa,
-            'jenis': jenis,
-            'bank': bank,
-            'nominal': nominal,
-            'admin': admin,
-            'tanggal': 'Hari Ini'
-        }
-    return render_template('transaksi.html', user=session, active_menu='transaksi', struk=struk_data)
-
-# Halaman Kalkulator Modal
-@app.route('/kalkulator-modal')
-def kalkulator_modal():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    return render_template('kalkulator_modal.html', user=session, active_menu='kalkulator')
-
-# Fitur Khusus Super Admin / Engineer: Tambah Akses Staf / CEO
-@app.route('/tambah-staf', methods=['GET', 'POST'])
-def tambah_staf():
-    if 'user_id' not in session or session['role'] != 'super_admin':
-        return "Akses ditolak! Fitur ini khusus Super Admin / Engineer.", 403
-        
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        nama = request.form['nama_lengkap']
-        role = request.form['role']
-        
-        db = get_db_connection()
-        cursor = db.cursor()
-        cursor.execute("INSERT INTO users (username, password, role, nama_lengkap) VALUES (%s, %s, %s, %s)",
-                       (username, password, role, nama))
-        db.commit()
-        cursor.close()
-        db.close()
-        return redirect(url_for('dashboard'))
-        
-    return render_template('tambah_staf.html')
-
-# Logout
 @app.route('/logout')
 def logout():
     session.clear()
+    flash('Anda telah keluar.', 'info')
     return redirect(url_for('login'))
 
+@app.route('/dashboard')
+def dashboard():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM transfer_logs ORDER BY created_at DESC LIMIT 10")
+        logs = cursor.fetchall()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        logs = []
+        flash(f'Gagal mengambil data: {e}', 'danger')
+
+    return render_template('dashboard.html', logs=logs, user=session['user'], role=session['role'])
+
+@app.route('/transfer', methods=['POST'])
+def transfer():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    sender_name = request.form['sender_name']
+    recipient_bank = request.form['recipient_bank']
+    account_number = request.form['account_number']
+    recipient_name = request.form['recipient_name']
+    amount = float(request.form['amount'])
+    admin_fee = float(request.form.get('admin_fee', 0))
+    total_pay = amount + admin_fee
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO transfer_logs 
+            (sender_name, recipient_bank, account_number, recipient_name, amount, admin_fee, total_pay, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (sender_name, recipient_bank, account_number, recipient_name, amount, admin_fee, total_pay, session['user']))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        flash('Transaksi transfer berhasil dicatat!', 'success')
+    except Exception as e:
+        flash(f'Gagal mencatat transaksi: {e}', 'danger')
+
+    return redirect(url_for('dashboard'))
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(debug=True)
