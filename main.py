@@ -17,6 +17,30 @@ def get_db_connection():
         ssl_disabled=False
     )
 
+# --- INISIALISASI & RESET PASSWORD OTOMATIS ---
+def init_db():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM users WHERE username = 'engineer'")
+        engineer = cursor.fetchone()
+        
+        hashed_pw = generate_password_hash("admin123")
+        if not engineer:
+            cursor.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
+                           ('engineer', hashed_pw, 'Engineer'))
+        else:
+            cursor.execute("UPDATE users SET password = %s WHERE username = 'engineer'", (hashed_pw,))
+            
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print("Database Init Error:", e)
+
+init_db()
+
 # --- ROUTES ---
 
 @app.route('/')
@@ -103,6 +127,7 @@ def transaksi():
         return redirect(url_for('login'))
     return render_template('transaksi.html', user=session.get('user'), role=session.get('role'))
 
+# --- RUTE KALKULATOR (MENYESUAIKAN DENGAN kalkulator_modal.html) ---
 @app.route('/kalkulator', methods=['GET'])
 @app.route('/kalkulator-modal', methods=['GET'])
 @app.route('/kalkulator_modal', methods=['GET'])
@@ -110,7 +135,7 @@ def transaksi():
 def kalkulator_view():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    return render_template('kalkulator.html', user=session.get('user'), role=session.get('role'))
+    return render_template('kalkulator_modal.html', user=session.get('user'), role=session.get('role'))
 
 @app.route('/transfer', methods=['POST'])
 def transfer():
