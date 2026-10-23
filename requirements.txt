@@ -1,1 +1,4 @@
-Set-Content -Path requirements.txt -Value "Flask`nmysql-connector-python`ngunicorn"
+Flask
+mysql-connector-python
+reportlab
+gunicorn
