@@ -1,86 +1,174 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Kalkulator Modal - ATMS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 flex h-screen overflow-hidden">
+import os
+from flask import Flask, render_template, request, redirect, url_for, session
+import mysql.connector
+from werkzeug.security import generate_password_hash, check_password_hash
 
-    <!-- SIDEBAR KIRI -->
-    <aside class="w-64 bg-slate-900 text-white flex flex-col justify-between shadow-xl">
-        <div>
-            <div class="p-5 border-b border-slate-800 flex items-center space-x-3">
-                <div class="bg-green-500 text-slate-900 font-black p-2 rounded-lg text-lg">ATMS</div>
-                <div>
-                    <h1 class="font-bold text-sm">ARSHA TRANSFER</h1>
-                    <p class="text-[10px] text-slate-400">Management System</p>
-                </div>
-            </div>
-            <nav class="p-4 space-y-1">
-                <a href="/dashboard" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800">📊 <span>Dashboard</span></a>
-                <a href="/transaksi" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800">💸 <span>Tools Transaksi</span></a>
-                <a href="/kalkulator-modal" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium bg-green-600 text-white">🧮 <span>Kalkulator Modal</span></a>
-            </nav>
-        </div>
-        <div class="p-4 border-t border-slate-800 bg-slate-950/50">
-            <p class="text-xs text-slate-400">Login:</p>
-            <p class="text-sm font-bold text-white">{{ user.nama_lengkap }}</p>
-        </div>
-    </aside>
+app = Flask(__name__)
+app.secret_key = 'arsha_secret_key_system'
 
-    <!-- KONTEN UTAMA -->
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto p-8 max-w-3xl">
-        <h2 class="text-2xl font-bold text-gray-800 mb-1">Kalkulator Pengecekan Modal & Saldo</h2>
-        <p class="text-xs text-gray-500 mb-6">Pastikan kas pas dan tidak ada selisih minus.</p>
+# --- KONEKSI DATABASE (TiDB Cloud) ---
+def get_db_connection():
+    return mysql.connector.connect(
+        host="gateway01.ap-northeast-1.prod.aws.tidbcloud.com",
+        port=4000,
+        user="41V1NDmRAAsJj5J.root",
+        password="jWFwGdgJrpaHP0AP",
+        database="arsha_db",
+        ssl_disabled=False
+    )
 
-        <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-xs space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-gray-700">Modal Utama Awal (Rp)</label>
-                <input type="number" id="modal" oninput="hitung()" class="w-full mt-1 p-2.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500" placeholder="0">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-700">Uang Cash di Laci (Rp)</label>
-                <input type="number" id="cash" oninput="hitung()" class="w-full mt-1 p-2.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500" placeholder="0">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-700">Uang yang Mengendap di Saldo Bank/E-Wallet (Rp)</label>
-                <input type="number" id="saldo" oninput="hitung()" class="w-full mt-1 p-2.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500" placeholder="0">
-            </div>
+# --- INISIALISASI & RESET PASSWORD OTOMATIS ---
+def init_db():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-            <div class="pt-4 border-t border-gray-100">
-                <p class="text-xs font-semibold text-gray-500 uppercase">Hasil Selisih / Evaluasi:</p>
-                <h3 id="hasil" class="text-3xl font-black mt-1 text-gray-800">Rp 0</h3>
-            </div>
+        cursor.execute("SELECT * FROM users WHERE username = 'engineer'")
+        engineer = cursor.fetchone()
+        
+        hashed_pw = generate_password_hash("admin123")
+        if not engineer:
+            cursor.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
+                           ('engineer', hashed_pw, 'Engineer'))
+        else:
+            cursor.execute("UPDATE users SET password = %s WHERE username = 'engineer'", (hashed_pw,))
+            
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print("Database Init Error:", e)
 
-            <div id="peringatan" class="hidden p-4 rounded-lg bg-red-100 border border-red-300 text-red-700 text-xs font-bold flex items-center space-x-2">
-                <span>⚠️ PERINGATAN: Terdeteksi selisih minus! Mohon periksa kembali kas fisik atau saldo mengendap Anda.</span>
-            </div>
-        </div>
-    </main>
+init_db()
 
-    <script>
-        function hitung() {
-            let modal = parseFloat(document.getElementById('modal').value) || 0;
-            let cash = parseFloat(document.getElementById('cash').value) || 0;
-            let saldo = parseFloat(document.getElementById('saldo').value) || 0;
+# --- ROUTES ---
 
-            let totalAset = cash + saldo;
-            let selisih = totalAset - modal;
+@app.route('/')
+def index():
+    if session.get('logged_in'):
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
 
-            let hasilElem = document.getElementById('hasil');
-            let peringatanElem = document.getElementById('peringatan');
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if session.get('logged_in'):
+        return redirect(url_for('dashboard'))
+        
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
 
-            hasilElem.innerText = "Rp " + selisih.toLocaleString('id-ID');
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+            user = cursor.fetchone()
+            cursor.close()
+            conn.close()
 
-            if (selisih < 0) {
-                hasilElem.className = "text-3xl font-black mt-1 text-red-600";
-                peringatanElem.classList.remove('hidden');
-            } else {
-                hasilElem.className = "text-3xl font-black mt-1 text-green-600";
-                peringatanElem.classList.add('hidden');
-            }
-        }
-    </script>
-</body>
-</html>
+            if user and check_password_hash(user['password'], password):
+                session['logged_in'] = True
+                session['user'] = user['username']
+                session['role'] = user['role']
+                return redirect(url_for('dashboard'))
+            else:
+                error = 'Username atau password salah!'
+        except Exception as e:
+            error = f'Database error: {e}'
+
+    return render_template('login.html', error=error)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+@app.route('/dashboard', methods=['GET'])
+def dashboard():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
+    # Ambil parameter filter tanggal dari query string (GET)
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    logs = []
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Query dasar
+        query = "SELECT * FROM transfer_logs"
+        params = []
+
+        # Jika user memilih filter tanggal
+        if start_date and end_date:
+            query += " WHERE DATE(created_at) BETWEEN %s AND %s"
+            params.extend([start_date, end_date])
+        elif start_date:
+            query += " WHERE DATE(created_at) >= %s"
+            params.append(start_date)
+        elif end_date:
+            query += " WHERE DATE(created_at) <= %s"
+            params.append(end_date)
+
+        query += " ORDER BY created_at DESC LIMIT 50"
+        
+        cursor.execute(query, tuple(params))
+        logs = cursor.fetchall()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print("Dashboard Error:", e)
+
+    return render_template('dashboard.html', logs=logs, user=session.get('user'), role=session.get('role'))
+
+@app.route('/transaksi', methods=['GET'])
+def transaksi():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    return render_template('transaksi.html', user=session.get('user'), role=session.get('role'))
+
+@app.route('/kalkulator', methods=['GET'])
+def kalkulator():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    return render_template('kalkulator.html', user=session.get('user'), role=session.get('role'))
+
+@app.route('/transfer', methods=['POST'])
+def transfer():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
+    sender_name = request.form.get('sender_name')
+    recipient_bank = request.form.get('recipient_bank')
+    account_number = request.form.get('account_number')
+    recipient_name = request.form.get('recipient_name')
+    try:
+        amount = float(request.form.get('amount', 0))
+        admin_fee = float(request.form.get('admin_fee', 0))
+    except ValueError:
+        amount = 0.0
+        admin_fee = 0.0
+        
+    total_pay = amount + admin_fee
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO transfer_logs 
+            (sender_name, recipient_bank, account_number, recipient_name, amount, admin_fee, total_pay, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (sender_name, recipient_bank, account_number, recipient_name, amount, admin_fee, total_pay, session.get('user')))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        pass
+
+    return redirect(url_for('dashboard'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
