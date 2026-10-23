@@ -75,27 +75,141 @@
         <div class="p-8 space-y-8 max-w-7xl w-full mx-auto">
 
             <!-- TOP STAT CARDS -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl">
                     <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Total Transaksi</p>
-                    <h3 class="text-3xl font-black text-white">{{ total_transaksi }}</h3>
+                    <h3 class="text-2xl font-black text-white">{{ total_transaksi }}</h3>
                 </div>
                 <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl">
                     <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Total Volume Nominal</p>
-                    <h3 class="text-3xl font-black text-emerald-400">Rp {{ "{:,.0f}".format(total_volume).replace(",", ".") }}</h3>
+                    <h3 class="text-2xl font-black text-emerald-400">Rp {{ "{:,.0f}".format(total_volume).replace(",", ".") }}</h3>
+                </div>
+                <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Total Profit</p>
+                    <h3 class="text-2xl font-black text-amber-400">Rp {{ "{:,.0f}".format(total_profit).replace(",", ".") }}</h3>
                 </div>
                 <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl">
                     <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Pelanggan Unik</p>
-                    <h3 class="text-3xl font-black text-white">{{ pelanggan_unik }}</h3>
+                    <h3 class="text-2xl font-black text-white">{{ pelanggan_unik }}</h3>
                 </div>
             </div>
 
-            <!-- GRAFIK TREN TRANSAKSI PER TANGGAL -->
+            <!-- GRAFIK TREN TRANSAKSI PER BULAN -->
             <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl">
                 <div class="flex justify-between items-center mb-6">
                     <div>
-                        <h3 class="text-base font-bold text-white">Grafik Volume Transaksi</h3>
-                        <p class="text-xs text-slate-400">Tren pertumbuhan nominal transaksi per tanggal</p>
+                        <h3 class="text-base font-bold text-white">Grafik Volume Transaksi Bulanan</h3>
+                        <p class="text-xs text-slate-400">Tren pertumbuhan nominal transaksi per bulan</p>
                     </div>
                 </div>
-                <div class="h-72 w-full
+                <div style="height: 320px; width: 100%; position: relative;">
+                    <canvas id="transactionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- REKAPITULASI PROFIT -->
+            <div>
+                <h3 class="text-base font-bold text-white mb-4">Rekapitulasi Profit Dinamis</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-slate-950 p-6 rounded-2xl border-l-4 border-emerald-500 border-y border-r border-slate-800 shadow-xl">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Harian</p>
+                        <h4 class="text-2xl font-bold text-white">Rp {{ "{:,.0f}".format(profit_harian).replace(",", ".") }}</h4>
+                    </div>
+                    <div class="bg-slate-950 p-6 rounded-2xl border-l-4 border-blue-500 border-y border-r border-slate-800 shadow-xl">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Mingguan</p>
+                        <h4 class="text-2xl font-bold text-white">Rp {{ "{:,.0f}".format(profit_mingguan).replace(",", ".") }}</h4>
+                    </div>
+                    <div class="bg-slate-950 p-6 rounded-2xl border-l-4 border-teal-500 border-y border-r border-slate-800 shadow-xl">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Bulanan</p>
+                        <h4 class="text-2xl font-bold text-white">Rp {{ "{:,.0f}".format(profit_bulanan).replace(",", ".") }}</h4>
+                    </div>
+                    <div class="bg-slate-950 p-6 rounded-2xl border-l-4 border-amber-500 border-y border-r border-slate-800 shadow-xl">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Tahunan</p>
+                        <h4 class="text-2xl font-bold text-white">Rp {{ "{:,.0f}".format(profit_tahunan).replace(",", ".") }}</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABEL HISTORI TRANSAKSI -->
+            <div class="bg-slate-950 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+                <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                    <h3 class="text-base font-bold text-white">Histori Transaksi Terbaru</h3>
+                    <span class="text-xs text-slate-500">Database ATMS Synced</span>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900/60 border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                                <th class="py-3.5 px-6">ID</th>
+                                <th class="py-3.5 px-6">Tanggal</th>
+                                <th class="py-3.5 px-6">Pelanggan</th>
+                                <th class="py-3.5 px-6">Tipe / Bank</th>
+                                <th class="py-3.5 px-6">Total Nominal</th>
+                                <th class="py-3.5 px-6">Admin / Profit</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60 text-xs text-slate-300 font-medium">
+                            {% if logs %}
+                                {% for log in logs %}
+                                <tr class="hover:bg-slate-900/50 transition">
+                                    <td class="py-4 px-6 font-semibold text-slate-400">#{{ log.id }}</td>
+                                    <td class="py-4 px-6">{{ log.created_at }}</td>
+                                    <td class="py-4 px-6 font-bold text-white">{{ log.sender_name }}</td>
+                                    <td class="py-4 px-6">{{ log.recipient_bank }} <span class="text-slate-500">({{ log.account_number }})</span></td>
+                                    <td class="py-4 px-6 font-bold text-emerald-400">Rp {{ "{:,.0f}".format(log.total_pay).replace(",", ".") }}</td>
+                                    <td class="py-4 px-6 text-emerald-400 font-bold">Rp {{ "{:,.0f}".format(log.admin_fee).replace(",", ".") }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-12 text-slate-500">Belum ada data histori transaksi untuk periode ini.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- SCRIPT CHART.JS -->
+    <script>
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const canvasEl = document.getElementById('transactionChart');
+            if (canvasEl) {
+                const ctx = canvasEl.getContext('2d');
+                const chartLabels = {{ chart_labels | tojson }};
+                const chartVolumes = {{ chart_volumes | tojson }};
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            label: 'Volume Transaksi Bulanan (Rp)',
+                            data: chartVolumes,
+                            backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                            borderColor: '#10b981',
+                            borderWidth: 1.5,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', weight: 600 } } }
+                        },
+                        scales: {
+                            x: { ticks: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 11 } }, grid: { color: 'rgba(51, 65, 85, 0.2)' } },
+                            y: { ticks: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 11 } }, grid: { color: 'rgba(51, 65, 85, 0.3)' } }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
