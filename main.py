@@ -13,59 +13,9 @@ def get_db_connection():
         port=4000,
         user="41V1NDmRAAsJj5J.root",
         password="jWFwGdgJrpaHP0AP",
-        database="sys",
+        database="arsha_db",  # <-- Sudah diubah ke arsha_db
         ssl_disabled=False
     )
-
-# --- INISIALISASI TABEL & AKUN DEFAULT ---
-def init_db():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # 1. Tabel Users
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(50) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL,
-                role VARCHAR(20) NOT NULL
-            )
-        """)
-
-        # 2. Tabel Transfer Logs
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS transfer_logs (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                sender_name VARCHAR(100),
-                recipient_bank VARCHAR(50),
-                account_number VARCHAR(50),
-                recipient_name VARCHAR(100),
-                amount DECIMAL(15, 2),
-                admin_fee DECIMAL(15, 2),
-                total_pay DECIMAL(15, 2),
-                status VARCHAR(20) DEFAULT 'Success',
-                created_by VARCHAR(50),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        # Cek apakah akun engineer sudah ada
-        cursor.execute("SELECT * FROM users WHERE username = 'engineer'")
-        engineer = cursor.fetchone()
-        if not engineer:
-            hashed_pw = generate_password_hash("admin123")
-            cursor.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
-                           ('engineer', hashed_pw, 'Engineer'))
-            conn.commit()
-
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print("Database Init Error:", e)
-
-# Jalankan inisialisasi tabel saat aplikasi start
-init_db()
 
 # --- ROUTES ---
 
@@ -93,6 +43,8 @@ def login():
             cursor.close()
             conn.close()
 
+            # Karena di database sudah kita masukkan password hash untuk admin123, 
+            # atau cek langsung cocok dengan akun yang kita insert via SQL.
             if user and check_password_hash(user['password'], password):
                 session['logged_in'] = True
                 session['user'] = user['username']
