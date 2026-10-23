@@ -127,7 +127,7 @@ def transaksi():
         return redirect(url_for('login'))
     return render_template('transaksi.html', user=session.get('user'), role=session.get('role'))
 
-# --- RUTE SEMUA VARIASI KALKULATOR (ANTI 404) ---
+# --- RUTE KALKULATOR AMAN (ANTI ERROR 404 & 500) ---
 @app.route('/kalkulator', methods=['GET'])
 @app.route('/kalkulator-modal', methods=['GET'])
 @app.route('/kalkulator_modal', methods=['GET'])
@@ -135,7 +135,11 @@ def transaksi():
 def kalkulator_view():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    return render_template('kalkulator.html', user=session.get('user'), role=session.get('role'))
+    try:
+        return render_template('kalkulator.html', user=session.get('user'), role=session.get('role'))
+    except Exception as e:
+        print("Template Error Kalkulator:", e)
+        return f"Terdeteksi kendala pada file template kalkulator.html: {e}", 500
 
 @app.route('/transfer', methods=['POST'])
 def transfer():
