@@ -23,7 +23,7 @@ def init_db():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Cek apakah akun engineer sudah ada atau belum, kalau belum/mau diset ulang
+        # Cek apakah akun engineer sudah ada atau belum
         cursor.execute("SELECT * FROM users WHERE username = 'engineer'")
         engineer = cursor.fetchone()
         
@@ -104,6 +104,20 @@ def dashboard():
         pass
 
     return render_template('dashboard.html', logs=logs, user=session.get('user'), role=session.get('role'))
+
+# --- RUTE TAMBAHAN UNTUK TOOLS & KALKULATOR (MENGHINDARI 404) ---
+
+@app.route('/transaksi', methods=['GET'])
+def transaksi():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    return render_template('transaksi.html', user=session.get('user'), role=session.get('role'))
+
+@app.route('/kalkulator', methods=['GET'])
+def kalkulator():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    return render_template('kalkulator.html', user=session.get('user'), role=session.get('role'))
 
 @app.route('/transfer', methods=['POST'])
 def transfer():
