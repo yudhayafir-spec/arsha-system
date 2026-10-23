@@ -89,7 +89,6 @@ def dashboard():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
 
-    # Ambil parameter filter tanggal dari query string (GET)
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
 
@@ -128,9 +127,15 @@ def transaksi():
         return redirect(url_for('login'))
     return render_template('transaksi.html', user=session.get('user'), role=session.get('role'))
 
-# Disesuaikan jadi /kalkulator-modal agar pas dengan link sidebar
+# --- RUTE GANDA KALKULATOR (MENJAMIN TIDAK AKAN 404 APA PUN LINK SIDEBAR-NYA) ---
+@app.route('/kalkulator', methods=['GET'])
+def kalkulator_short():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    return render_template('kalkulator.html', user=session.get('user'), role=session.get('role'))
+
 @app.route('/kalkulator-modal', methods=['GET'])
-def kalkulator():
+def kalkulator_modal():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     return render_template('kalkulator.html', user=session.get('user'), role=session.get('role'))
