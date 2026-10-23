@@ -16,26 +16,6 @@ def get_db_connection():
         ssl_disabled=False
     )
 
-def init_db():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE username = 'engineer'")
-        engineer = cursor.fetchone()
-        hashed_pw = generate_password_hash("admin123")
-        if not engineer:
-            cursor.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
-                           ('engineer', hashed_pw, 'Engineer'))
-        else:
-            cursor.execute("UPDATE users SET password = %s WHERE username = 'engineer'", (hashed_pw,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print("Database Init Error:", e)
-
-init_db()
-
 @app.route('/')
 def index():
     if session.get('logged_in'):
