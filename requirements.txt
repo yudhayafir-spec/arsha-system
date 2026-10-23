@@ -1,4 +1,5 @@
 Flask
 mysql-connector-python
-reportlab
-gunicorn
+werkzeug
+pandas
+openpyxl
