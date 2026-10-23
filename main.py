@@ -1,12 +1,7 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
-from io import BytesIO
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
 
 app = Flask(__name__)
 app.secret_key = 'arsha_secret_key_system'
@@ -83,8 +78,8 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        username = request.form.get('username')
+        password = request.form.get('password')
 
         try:
             conn = get_db_connection()
@@ -97,7 +92,6 @@ def login():
             if user and check_password_hash(user['password'], password):
                 session['user'] = user['username']
                 session['role'] = user['role']
-                flash('Login berhasil!', 'success')
                 return redirect(url_for('dashboard'))
             else:
                 flash('Username atau password salah!', 'danger')
@@ -109,10 +103,9 @@ def login():
 @app.route('/logout')
 def logout():
     session.clear()
-    flash('Anda telah keluar.', 'info')
     return redirect(url_for('login'))
 
-@app.route('/dashboard')
+@app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     if 'user' not in session:
         return redirect(url_for('login'))
@@ -126,21 +119,25 @@ def dashboard():
         conn.close()
     except Exception as e:
         logs = []
-        flash(f'Gagal mengambil data: {e}', 'danger')
 
-    return render_template('dashboard.html', logs=logs, user=session['user'], role=session['role'])
+    return render_template('dashboard.html', logs=logs, user=session['user'], role=session.get('role', 'Staff'))
 
 @app.route('/transfer', methods=['POST'])
 def transfer():
     if 'user' not in session:
         return redirect(url_for('login'))
 
-    sender_name = request.form['sender_name']
-    recipient_bank = request.form['recipient_bank']
-    account_number = request.form['account_number']
-    recipient_name = request.form['recipient_name']
-    amount = float(request.form['amount'])
-    admin_fee = float(request.form.get('admin_fee', 0))
+    sender_name = request.form.get('sender_name')
+    recipient_bank = request.form.get('recipient_bank')
+    account_number = request.form.get('account_number')
+    recipient_name = request.form.get('recipient_name')
+    try:
+        amount = float(request.form.get('amount', 0))
+        admin_fee = float(request.form.get('admin_fee', 0))
+    except ValueError:
+        amount = 0.0
+        admin_fee = 0.0
+        
     total_pay = amount + admin_fee
 
     try:
@@ -154,9 +151,8 @@ def transfer():
         conn.commit()
         cursor.close()
         conn.close()
-        flash('Transaksi transfer berhasil dicatat!', 'success')
     except Exception as e:
-        flash(f'Gagal mencatat transaksi: {e}', 'danger')
+        pass
 
     return redirect(url_for('dashboard'))
 
