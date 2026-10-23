@@ -72,7 +72,7 @@ def dashboard():
     profit_bulanan = 0.0
     profit_tahunan = 0.0
 
-    chart_dates = []
+    chart_labels = []
     chart_volumes = []
 
     try:
@@ -83,13 +83,13 @@ def dashboard():
         params = []
 
         if start_date and end_date:
-            where_clauses.append("DATE(created_at) BETWEEN %s AND %s")
+            where_clauses.append("created_at >= %s AND created_at <= CONCAT(%s, ' 23:59:59')")
             params.extend([start_date, end_date])
         elif start_date:
-            where_clauses.append("DATE(created_at) >= %s")
+            where_clauses.append("created_at >= %s")
             params.append(start_date)
         elif end_date:
-            where_clauses.append("DATE(created_at) <= %s")
+            where_clauses.append("created_at <= CONCAT(%s, ' 23:59:59')")
             params.append(end_date)
 
         where_sql = ""
@@ -113,28 +113,36 @@ def dashboard():
 
         # 2. Rekapitulasi Profit Dinamis dari Database
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE DATE(created_at) = CURDATE()")
-        profit_harian = float(cursor.fetchone()['p'])
+        res_h = cursor.fetchone()
+        profit_harian = float(res_h['p']) if res_h and res_h['p'] else 0.0
         
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)")
-        profit_mingguan = float(cursor.fetchone()['p'])
+        res_m = cursor.fetchone()
+        profit_mingguan = float(res_m['p']) if res_m and res_m['p'] else 0.0
 
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())")
-        profit_bulanan = float(cursor.fetchone()['p'])
+        res_b = cursor.fetchone()
+        profit_bulanan = float(res_b['p']) if res_b and res_b['p'] else 0.0
 
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE YEAR(created_at) = YEAR(CURDATE())")
-        profit_tahunan = float(cursor.fetchone()['p'])
+        res_t = cursor.fetchone()
+        profit_tahunan = float(res_t['p']) if res_t and res_t['p'] else 0.0
 
-        # 3. Data Grafik per Tanggal
+        # 3. Data Grafik PER BULAN (Monthly Aggregation)
         query_chart = f"""
-            SELECT DATE(created_at) as tgl, SUM(total_pay) as vol 
+            SELECT DATE_FORMAT(created_at, '%Y-%m') as bulan, SUM(total_pay) as vol 
             FROM transfer_logs {where_sql}
-            GROUP BY DATE(created_at)
-            ORDER BY DATE(created_at) ASC
+            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+            ORDER BY bulan ASC
         """
         cursor.execute(query_chart, tuple(params))
         chart_rows = cursor.fetchall()
         for r in chart_rows:
-            chart_dates.append(str(r['tgl']))
+            # Ubah format '2026-06' jadi 'Juni 2026' agar rapi dibaca
+            parts = r['bulan'].split('-')
+            months_id = {'01':'Januari', '02':'Februari', '03':'Maret', '04':'April', '05':'Mei', '06':'Juni', '07':'Juli', '08':'Agustus', '09':'September', '10':'Oktober', '11':'November', '12':'Desember'}
+            m_name = months_id.get(parts[1], parts[1])
+            chart_labels.append(f"{m_name} {parts[0]}")
             chart_volumes.append(float(r['vol']))
 
         # 4. Tabel Histori Transaksi Terbaru
@@ -157,7 +165,7 @@ def dashboard():
         profit_mingguan=profit_mingguan,
         profit_bulanan=profit_bulanan,
         profit_tahunan=profit_tahunan,
-        chart_dates=chart_dates,
+        chart_labels=chart_labels,
         chart_volumes=chart_volumes,
         user=session.get('user'), 
         role=session.get('role')
