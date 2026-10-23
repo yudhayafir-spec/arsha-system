@@ -66,6 +66,7 @@ def dashboard():
     total_transaksi = 0
     total_volume = 0.0
     pelanggan_unik = 0
+    total_profit = 0.0
     
     profit_harian = 0.0
     profit_mingguan = 0.0
@@ -96,12 +97,13 @@ def dashboard():
         if where_clauses:
             where_sql = " WHERE " + " AND ".join(where_clauses)
 
-        # 1. Total Ringkasan
+        # 1. Total Ringkasan & Profit
         query_summary = f"""
             SELECT 
                 COUNT(*) as total_transaksi, 
                 COALESCE(SUM(total_pay), 0) as total_volume, 
-                COUNT(DISTINCT sender_name) as pelanggan_unik 
+                COUNT(DISTINCT sender_name) as pelanggan_unik,
+                COALESCE(SUM(admin_fee), 0) as total_profit
             FROM transfer_logs {where_sql}
         """
         cursor.execute(query_summary, tuple(params))
@@ -110,8 +112,9 @@ def dashboard():
             total_transaksi = summary['total_transaksi']
             total_volume = float(summary['total_volume'])
             pelanggan_unik = summary['pelanggan_unik']
+            total_profit = float(summary['total_profit'])
 
-        # 2. Rekapitulasi Profit Dinamis dari Database
+        # 2. Rekapitulasi Profit Dinamis
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE DATE(created_at) = CURDATE()")
         res_h = cursor.fetchone()
         profit_harian = float(res_h['p']) if res_h and res_h['p'] else 0.0
@@ -138,7 +141,6 @@ def dashboard():
         cursor.execute(query_chart, tuple(params))
         chart_rows = cursor.fetchall()
         for r in chart_rows:
-            # Ubah format '2026-06' jadi 'Juni 2026' agar rapi dibaca
             parts = r['bulan'].split('-')
             months_id = {'01':'Januari', '02':'Februari', '03':'Maret', '04':'April', '05':'Mei', '06':'Juni', '07':'Juli', '08':'Agustus', '09':'September', '10':'Oktober', '11':'November', '12':'Desember'}
             m_name = months_id.get(parts[1], parts[1])
@@ -161,6 +163,7 @@ def dashboard():
         total_transaksi=total_transaksi, 
         total_volume=total_volume, 
         pelanggan_unik=pelanggan_unik,
+        total_profit=total_profit,
         profit_harian=profit_harian,
         profit_mingguan=profit_mingguan,
         profit_bulanan=profit_bulanan,
