@@ -23,7 +23,6 @@ def init_db():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Cek apakah akun engineer sudah ada atau belum
         cursor.execute("SELECT * FROM users WHERE username = 'engineer'")
         engineer = cursor.fetchone()
         
@@ -32,7 +31,6 @@ def init_db():
             cursor.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
                            ('engineer', hashed_pw, 'Engineer'))
         else:
-            # Update paksa passwordnya jadi admin123 biar pasti sinkron
             cursor.execute("UPDATE users SET password = %s WHERE username = 'engineer'", (hashed_pw,))
             
         conn.commit()
@@ -41,7 +39,6 @@ def init_db():
     except Exception as e:
         print("Database Init Error:", e)
 
-# Jalankan inisialisasi password saat app start
 init_db()
 
 # --- ROUTES ---
@@ -92,20 +89,37 @@ def dashboard():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
 
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
     logs = []
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM transfer_logs ORDER BY created_at DESC LIMIT 10")
+
+        query = "SELECT * FROM transfer_logs"
+        params = []
+
+        if start_date and end_date:
+            query += " WHERE DATE(created_at) BETWEEN %s AND %s"
+            params.extend([start_date, end_date])
+        elif start_date:
+            query += " WHERE DATE(created_at) >= %s"
+            params.append(start_date)
+        elif end_date:
+            query += " WHERE DATE(created_at) <= %s"
+            params.append(end_date)
+
+        query += " ORDER BY created_at DESC LIMIT 50"
+        
+        cursor.execute(query, tuple(params))
         logs = cursor.fetchall()
         cursor.close()
         conn.close()
     except Exception as e:
-        pass
+        print("Dashboard Error:", e)
 
     return render_template('dashboard.html', logs=logs, user=session.get('user'), role=session.get('role'))
-
-# --- RUTE TAMBAHAN UNTUK TOOLS & KALKULATOR (MENGHINDARI 404) ---
 
 @app.route('/transaksi', methods=['GET'])
 def transaksi():
@@ -113,8 +127,12 @@ def transaksi():
         return redirect(url_for('login'))
     return render_template('transaksi.html', user=session.get('user'), role=session.get('role'))
 
+# --- RUTE SEMUA VARIASI KALKULATOR (ANTI 404) ---
 @app.route('/kalkulator', methods=['GET'])
-def kalkulator():
+@app.route('/kalkulator-modal', methods=['GET'])
+@app.route('/kalkulator_modal', methods=['GET'])
+@app.route('/calculator', methods=['GET'])
+def kalkulator_view():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     return render_template('kalkulator.html', user=session.get('user'), role=session.get('role'))
