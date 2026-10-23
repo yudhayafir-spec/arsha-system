@@ -13,9 +13,36 @@ def get_db_connection():
         port=4000,
         user="41V1NDmRAAsJj5J.root",
         password="jWFwGdgJrpaHP0AP",
-        database="arsha_db",  # <-- Sudah diubah ke arsha_db
+        database="arsha_db",
         ssl_disabled=False
     )
+
+# --- INISIALISASI & RESET PASSWORD OTOMATIS ---
+def init_db():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Cek apakah akun engineer sudah ada atau belum, kalau belum/mau diset ulang
+        cursor.execute("SELECT * FROM users WHERE username = 'engineer'")
+        engineer = cursor.fetchone()
+        
+        hashed_pw = generate_password_hash("admin123")
+        if not engineer:
+            cursor.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
+                           ('engineer', hashed_pw, 'Engineer'))
+        else:
+            # Update paksa passwordnya jadi admin123 biar pasti sinkron
+            cursor.execute("UPDATE users SET password = %s WHERE username = 'engineer'", (hashed_pw,))
+            
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print("Database Init Error:", e)
+
+# Jalankan inisialisasi password saat app start
+init_db()
 
 # --- ROUTES ---
 
@@ -43,8 +70,6 @@ def login():
             cursor.close()
             conn.close()
 
-            # Karena di database sudah kita masukkan password hash untuk admin123, 
-            # atau cek langsung cocok dengan akun yang kita insert via SQL.
             if user and check_password_hash(user['password'], password):
                 session['logged_in'] = True
                 session['user'] = user['username']
