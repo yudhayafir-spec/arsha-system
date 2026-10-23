@@ -6,7 +6,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.secret_key = 'arsha_secret_key_system'
 
-# --- KONEKSI DATABASE (TiDB Cloud) ---
 def get_db_connection():
     return mysql.connector.connect(
         host="gateway01.ap-northeast-1.prod.aws.tidbcloud.com",
@@ -17,22 +16,18 @@ def get_db_connection():
         ssl_disabled=False
     )
 
-# --- INISIALISASI & RESET PASSWORD OTOMATIS ---
 def init_db():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-
         cursor.execute("SELECT * FROM users WHERE username = 'engineer'")
         engineer = cursor.fetchone()
-        
         hashed_pw = generate_password_hash("admin123")
         if not engineer:
             cursor.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
                            ('engineer', hashed_pw, 'Engineer'))
         else:
             cursor.execute("UPDATE users SET password = %s WHERE username = 'engineer'", (hashed_pw,))
-            
         conn.commit()
         cursor.close()
         conn.close()
@@ -40,8 +35,6 @@ def init_db():
         print("Database Init Error:", e)
 
 init_db()
-
-# --- ROUTES ---
 
 @app.route('/')
 def index():
@@ -53,12 +46,10 @@ def index():
 def login():
     if session.get('logged_in'):
         return redirect(url_for('dashboard'))
-        
     error = None
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-
         try:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
@@ -66,7 +57,6 @@ def login():
             user = cursor.fetchone()
             cursor.close()
             conn.close()
-
             if user and check_password_hash(user['password'], password):
                 session['logged_in'] = True
                 session['user'] = user['username']
@@ -76,7 +66,6 @@ def login():
                 error = 'Username atau password salah!'
         except Exception as e:
             error = f'Database error: {e}'
-
     return render_template('login.html', error=error)
 
 @app.route('/logout')
@@ -88,18 +77,14 @@ def logout():
 def dashboard():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
-
     logs = []
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-
         query = "SELECT * FROM transfer_logs"
         params = []
-
         if start_date and end_date:
             query += " WHERE DATE(created_at) BETWEEN %s AND %s"
             params.extend([start_date, end_date])
@@ -109,16 +94,13 @@ def dashboard():
         elif end_date:
             query += " WHERE DATE(created_at) <= %s"
             params.append(end_date)
-
         query += " ORDER BY created_at DESC LIMIT 50"
-        
         cursor.execute(query, tuple(params))
         logs = cursor.fetchall()
         cursor.close()
         conn.close()
     except Exception as e:
         print("Dashboard Error:", e)
-
     return render_template('dashboard.html', logs=logs, user=session.get('user'), role=session.get('role'))
 
 @app.route('/transaksi', methods=['GET'])
@@ -127,7 +109,6 @@ def transaksi():
         return redirect(url_for('login'))
     return render_template('transaksi.html', user=session.get('user'), role=session.get('role'))
 
-# --- RUTE KALKULATOR (MENYESUAIKAN DENGAN kalkulator_modal.html) ---
 @app.route('/kalkulator', methods=['GET'])
 @app.route('/kalkulator-modal', methods=['GET'])
 @app.route('/kalkulator_modal', methods=['GET'])
@@ -141,7 +122,6 @@ def kalkulator_view():
 def transfer():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-
     sender_name = request.form.get('sender_name')
     recipient_bank = request.form.get('recipient_bank')
     account_number = request.form.get('account_number')
@@ -152,9 +132,7 @@ def transfer():
     except ValueError:
         amount = 0.0
         admin_fee = 0.0
-        
     total_pay = amount + admin_fee
-
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -168,7 +146,6 @@ def transfer():
         conn.close()
     except Exception as e:
         pass
-
     return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
