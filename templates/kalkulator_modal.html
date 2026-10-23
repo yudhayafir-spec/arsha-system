@@ -98,11 +98,9 @@ def dashboard():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # Query dasar
         query = "SELECT * FROM transfer_logs"
         params = []
 
-        # Jika user memilih filter tanggal
         if start_date and end_date:
             query += " WHERE DATE(created_at) BETWEEN %s AND %s"
             params.extend([start_date, end_date])
@@ -130,7 +128,8 @@ def transaksi():
         return redirect(url_for('login'))
     return render_template('transaksi.html', user=session.get('user'), role=session.get('role'))
 
-@app.route('/kalkulator', methods=['GET'])
+# Disesuaikan jadi /kalkulator-modal agar pas dengan link sidebar
+@app.route('/kalkulator-modal', methods=['GET'])
 def kalkulator():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
