@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -71,12 +71,16 @@ init_db()
 
 @app.route('/')
 def index():
-    if 'user' in session:
+    if session.get('logged_in'):
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if session.get('logged_in'):
+        return redirect(url_for('dashboard'))
+        
+    error = None
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -90,26 +94,28 @@ def login():
             conn.close()
 
             if user and check_password_hash(user['password'], password):
+                session['logged_in'] = True
                 session['user'] = user['username']
                 session['role'] = user['role']
                 return redirect(url_for('dashboard'))
             else:
-                flash('Username atau password salah!', 'danger')
+                error = 'Username atau password salah!'
         except Exception as e:
-            flash(f'Database error: {e}', 'danger')
+            error = f'Database error: {e}'
 
-    return render_template('login.html')
+    return render_template('login.html', error=error)
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
-@app.route('/dashboard', methods=['GET', 'POST'])
+@app.route('/dashboard', methods=['GET'])
 def dashboard():
-    if 'user' not in session:
+    if not session.get('logged_in'):
         return redirect(url_for('login'))
 
+    logs = []
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -118,13 +124,13 @@ def dashboard():
         cursor.close()
         conn.close()
     except Exception as e:
-        logs = []
+        pass
 
-    return render_template('dashboard.html', logs=logs, user=session['user'], role=session.get('role', 'Staff'))
+    return render_template('dashboard.html', logs=logs, user=session.get('user'), role=session.get('role'))
 
 @app.route('/transfer', methods=['POST'])
 def transfer():
-    if 'user' not in session:
+    if not session.get('logged_in'):
         return redirect(url_for('login'))
 
     sender_name = request.form.get('sender_name')
@@ -147,7 +153,7 @@ def transfer():
             INSERT INTO transfer_logs 
             (sender_name, recipient_bank, account_number, recipient_name, amount, admin_fee, total_pay, created_by)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (sender_name, recipient_bank, account_number, recipient_name, amount, admin_fee, total_pay, session['user']))
+        """, (sender_name, recipient_bank, account_number, recipient_name, amount, admin_fee, total_pay, session.get('user')))
         conn.commit()
         cursor.close()
         conn.close()
