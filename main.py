@@ -12,7 +12,8 @@ def get_db_connection():
         user="41V1NDmRAAsJj5J.root",
         password="jWFwGdgJrpaHP0AP",
         database="arsha_db",
-        ssl_disabled=False
+        ssl_disabled=False,
+        connection_timeout=5
     )
 
 @app.route('/')
@@ -45,14 +46,12 @@ def dashboard():
 
     chart_labels = ['Juni 2026', 'Juli 2026', 'Agustus 2026', 'September 2026', 'Oktober 2026']
     chart_volumes = [20000000, 18000000, 230000000, 480000000, 415000000]
-    
     logs = []
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # Ambil ringkasan utama murni dari database
         cursor.execute("""
             SELECT 
                 COUNT(*) as total_transaksi, 
@@ -68,34 +67,29 @@ def dashboard():
             pelanggan_unik = summary['pelanggan_unik']
             total_profit = float(summary['total_profit'])
 
-        # Profit Harian dari database
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE DATE(created_at) = CURDATE()")
         res_h = cursor.fetchone()
         if res_h: profit_harian = float(res_h['p'])
 
-        # Profit Mingguan
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")
         res_m = cursor.fetchone()
         if res_m: profit_mingguan = float(res_m['p'])
 
-        # Profit Bulanan
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())")
         res_b = cursor.fetchone()
         if res_b: profit_bulanan = float(res_b['p'])
 
-        # Profit Tahunan
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE YEAR(created_at) = YEAR(CURRENT_DATE())")
         res_t = cursor.fetchone()
         if res_t: profit_tahunan = float(res_t['p'])
 
-        # Histori Transaksi Asli dari TiDB Cloud (Urut dari yang terbaru hari ini)
         cursor.execute("SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY id DESC LIMIT 20")
         logs = cursor.fetchall()
 
         cursor.close()
         conn.close()
     except Exception as e:
-        print("DB Error:", e)
+        print("Database Connection Error:", e)
 
     return render_template(
         'dashboard.html',
@@ -136,7 +130,6 @@ def transaksi():
             'total_pay': total_pay
         }
 
-        # Simpan transaksi baru langsung ke database TiDB Cloud
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -152,9 +145,9 @@ def transaksi():
 
     return render_template(
         'transaksi.html',
-          receipt=receipt,
-          user='engineer',
-          role='Engineer'
+        receipt=receipt,
+        user='engineer',
+        role='Engineer'
     )
 
 @app.route('/kalkulator', methods=['GET'])
