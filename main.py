@@ -1,8 +1,19 @@
 import os
+import mysql.connector
 from flask import Flask, render_template, request, redirect, url_for, session
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = 'arsha_secret_key_system'
+
+def get_db_connection():
+    return mysql.connector.connect(
+        host="gateway01.ap-northeast-1.prod.aws.tidbcloud.com",
+        port=4000,
+        user="41V1NDmRAAsJj5J.root",
+        password="jWFwGdgJrpaHP0AP",
+        database="arsha_db",
+        ssl_disabled=False
+    )
 
 @app.route('/')
 def index():
@@ -22,7 +33,7 @@ def logout():
 
 @app.route('/dashboard', methods=['GET'])
 def dashboard():
-    # Angka real ATMS sesuai data awal
+    # Fallback default values
     total_transaksi = 333
     total_volume = 1164537527.0
     total_profit = 6467500.0
@@ -40,6 +51,57 @@ def dashboard():
         {"id": 1, "created_at": "24-10-2026 14:00", "sender_name": "Budi Santoso", "recipient_bank": "BRI", "account_number": "1234567890", "total_pay": 500000.0, "admin_fee": 10000.0},
         {"id": 2, "created_at": "24-10-2026 15:30", "sender_name": "Siti Aminah", "recipient_bank": "BCA", "account_number": "0987654321", "total_pay": 1250000.0, "admin_fee": 15000.0}
     ]
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Ambil ringkasan utama
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_transaksi, 
+                COALESCE(SUM(total_pay), 0) as total_volume, 
+                COUNT(DISTINCT sender_name) as pelanggan_unik,
+                COALESCE(SUM(admin_fee), 0) as total_profit
+            FROM transfer_logs
+        """)
+        summary = cursor.fetchone()
+        if summary and summary['total_transaksi'] > 0:
+            total_transaksi = summary['total_transaksi']
+            total_volume = float(summary['total_volume'])
+            pelanggan_unik = summary['pelanggan_unik']
+            total_profit = float(summary['total_profit'])
+
+        # Profit Harian
+        cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE DATE(created_at) = CURDATE()")
+        res_h = cursor.fetchone()
+        if res_h: profit_harian = float(res_h['p'])
+
+        # Profit Mingguan (7 hari terakhir)
+        cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")
+        res_m = cursor.fetchone()
+        if res_m: profit_mingguan = float(res_m['p'])
+
+        # Profit Bulanan
+        cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())")
+        res_b = cursor.fetchone()
+        if res_b: profit_bulanan = float(res_b['p'])
+
+        # Profit Tahunan
+        cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE YEAR(created_at) = YEAR(CURRENT_DATE())")
+        res_t = cursor.fetchone()
+        if res_t: profit_tahunan = float(res_t['p'])
+
+        # Ambil Histori Transaksi Terbaru dari Database
+        cursor.execute("SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY id DESC LIMIT 10")
+        db_logs = cursor.fetchall()
+        if db_logs:
+            logs = db_logs
+
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print("DB Connected using fallback data due to:", e)
 
     return render_template(
         'dashboard.html',
@@ -80,6 +142,20 @@ def transaksi():
             'total_pay': total_pay
         }
 
+        # Simpan ke database jika koneksi aktif
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO transfer_logs (sender_name, account_number, transaction_type, recipient_bank, total_pay, admin_fee, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, NOW())
+            """, (sender_name, account_number, transaction_type, recipient_bank, total_pay, admin_fee))
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print("Failed to insert to DB:", e)
+
     return render_template(
         'transaksi.html',
         receipt=receipt,
@@ -97,6 +173,15 @@ def kalkulator():
 
 @app.route('/delete/<int:id>', methods=['GET'])
 def delete_transaksi(id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM transfer_logs WHERE id = %s", (id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print("Failed to delete from DB:", e)
     return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
