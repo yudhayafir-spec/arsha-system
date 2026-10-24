@@ -207,7 +207,6 @@ def transaksi():
             cursor.close()
             conn.close()
             
-            # Data struk untuk ditampilkan langsung di halaman
             receipt = {
                 'sender_name': sender_name,
                 'account_number': account_number,
@@ -221,6 +220,21 @@ def transaksi():
             print("Insert Transaksi Error:", e)
 
     return render_template('transaksi.html', user=session.get('user'), role=session.get('role'), receipt=receipt)
+
+@app.route('/delete/<int:id>', methods=['GET', 'POST'])
+def delete_transaction(id):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM transfer_logs WHERE id = %s", (id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print("Delete Error:", e)
+    return redirect(url_for('dashboard'))
 
 @app.route('/kalkulator', methods=['GET'])
 @app.route('/kalkulator-modal', methods=['GET'])
