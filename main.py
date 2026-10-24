@@ -97,7 +97,6 @@ def dashboard():
         if where_clauses:
             where_sql = " WHERE " + " AND ".join(where_clauses)
 
-        # 1. Total Ringkasan & Profit
         query_summary = f"""
             SELECT 
                 COUNT(*) as total_transaksi, 
@@ -114,7 +113,6 @@ def dashboard():
             pelanggan_unik = summary['pelanggan_unik']
             total_profit = float(summary['total_profit'])
 
-        # 2. Rekapitulasi Profit Dinamis
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE DATE(created_at) = CURDATE()")
         res_h = cursor.fetchone()
         profit_harian = float(res_h['p']) if res_h and res_h['p'] else 0.0
@@ -131,7 +129,6 @@ def dashboard():
         res_t = cursor.fetchone()
         profit_tahunan = float(res_t['p']) if res_t and res_t['p'] else 0.0
 
-        # 3. Data Grafik PER BULAN
         query_chart = f"""
             SELECT DATE_FORMAT(created_at, '%Y-%m') as bulan, SUM(total_pay) as vol 
             FROM transfer_logs {where_sql}
@@ -151,7 +148,6 @@ def dashboard():
             chart_labels.append(f"{m_name} {parts[0]}")
             chart_volumes.append(float(r['vol']))
 
-        # 4. Tabel Histori Transaksi Terbaru
         query_logs = f"SELECT * FROM transfer_logs {where_sql} ORDER BY created_at DESC LIMIT 50"
         cursor.execute(query_logs, tuple(params))
         logs = cursor.fetchall()
@@ -183,50 +179,16 @@ def transaksi():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
         
+    receipt = None
     if request.method == 'POST':
-        # Menangkap data dari form input (mengakomodasi semua variasi nama atribut form)
-        sender_name = (
-            request.form.get('nama') or 
-            request.form.get('sender_name') or 
-            request.form.get('customer') or 
-            'Umum'
-        )
-        
-        account_number = (
-            request.form.get('no_rek') or 
-            request.form.get('account_number') or 
-            request.form.get('nomor_wa') or 
-            '-'
-        )
-        
-        recipient_bank = (
-            request.form.get('bank') or 
-            request.form.get('recipient_bank') or 
-            request.form.get('bank_wallet') or 
-            'BRI'
-        )
-        
-        transaction_type = (
-            request.form.get('tipe') or 
-            request.form.get('transaction_type') or 
-            request.form.get('jenis_transaksi') or 
-            'Transfer'
-        )
+        sender_name = request.form.get('sender_name') or 'Umum'
+        account_number = request.form.get('account_number') or '-'
+        recipient_bank = request.form.get('recipient_bank') or 'BRI'
+        transaction_type = request.form.get('transaction_type') or 'Transfer'
         
         try:
-            total_pay = float(
-                request.form.get('nominal') or 
-                request.form.get('amount') or 
-                request.form.get('total_pay') or 
-                request.form.get('total') or 
-                0
-            )
-            admin_fee = float(
-                request.form.get('admin') or 
-                request.form.get('admin_fee') or 
-                request.form.get('biaya_admin') or 
-                0
-            )
+            total_pay = float(request.form.get('amount') or 0)
+            admin_fee = float(request.form.get('admin_fee') or 0)
         except ValueError:
             total_pay = 0.0
             admin_fee = 0.0
@@ -244,12 +206,21 @@ def transaksi():
             conn.commit()
             cursor.close()
             conn.close()
+            
+            # Data struk untuk ditampilkan langsung di halaman
+            receipt = {
+                'sender_name': sender_name,
+                'account_number': account_number,
+                'recipient_bank': recipient_bank,
+                'transaction_type': transaction_type,
+                'total_pay': total_pay,
+                'admin_fee': admin_fee,
+                'amount': amount
+            }
         except Exception as e:
             print("Insert Transaksi Error:", e)
-            
-        return redirect(url_for('dashboard'))
 
-    return render_template('transaksi.html', user=session.get('user'), role=session.get('role'))
+    return render_template('transaksi.html', user=session.get('user'), role=session.get('role'), receipt=receipt)
 
 @app.route('/kalkulator', methods=['GET'])
 @app.route('/kalkulator-modal', methods=['GET'])
@@ -288,7 +259,7 @@ def seed_database():
         conn.close()
         return "BERHASIL MIGRASI 333 DATA EXCEL KE DATABASE!"
     except Exception as e:
-        return f"Gagal migrasi: {e}"
+        print(f"Gagal migrasi: {e}")
 
 if __name__ == '__main__':
     app.run(debug=True)
