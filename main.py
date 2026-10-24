@@ -131,7 +131,7 @@ def dashboard():
         res_t = cursor.fetchone()
         profit_tahunan = float(res_t['p']) if res_t and res_t['p'] else 0.0
 
-        # 3. Data Grafik PER BULAN (Monthly Aggregation)
+        # 3. Data Grafik PER BULAN
         query_chart = f"""
             SELECT DATE_FORMAT(created_at, '%Y-%m') as bulan, SUM(total_pay) as vol 
             FROM transfer_logs {where_sql}
@@ -184,47 +184,46 @@ def transaksi():
         return redirect(url_for('login'))
         
     if request.method == 'POST':
-        # Tangkap data form dari berbagai alternatif atribut nama HTML
+        # Menangkap data dari form input (mengakomodasi semua variasi nama atribut form)
         sender_name = (
-            request.form.get('sender_name') or 
             request.form.get('nama') or 
+            request.form.get('sender_name') or 
             request.form.get('customer') or 
             'Umum'
         )
         
         account_number = (
-            request.form.get('account_number') or 
             request.form.get('no_rek') or 
+            request.form.get('account_number') or 
             request.form.get('nomor_wa') or 
-            request.form.get('whatsapp') or 
             '-'
         )
         
         recipient_bank = (
-            request.form.get('recipient_bank') or 
             request.form.get('bank') or 
+            request.form.get('recipient_bank') or 
             request.form.get('bank_wallet') or 
             'BRI'
         )
         
         transaction_type = (
-            request.form.get('transaction_type') or 
             request.form.get('tipe') or 
+            request.form.get('transaction_type') or 
             request.form.get('jenis_transaksi') or 
             'Transfer'
         )
         
         try:
             total_pay = float(
+                request.form.get('nominal') or 
                 request.form.get('amount') or 
                 request.form.get('total_pay') or 
                 request.form.get('total') or 
-                request.form.get('nominal') or 
                 0
             )
             admin_fee = float(
-                request.form.get('admin_fee') or 
                 request.form.get('admin') or 
+                request.form.get('admin_fee') or 
                 request.form.get('biaya_admin') or 
                 0
             )
