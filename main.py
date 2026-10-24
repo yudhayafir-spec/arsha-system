@@ -1,7 +1,7 @@
 import os
 import mysql.connector
 from flask import Flask, render_template, request, redirect, url_for, session
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = 'arsha_secret_key_system'
@@ -90,7 +90,7 @@ def dashboard():
         cursor.close()
         conn.close()
     except Exception as e:
-        print("Dashboard DB Fetch Error:", e)
+        print("Database Connection Error:", e)
 
     return render_template(
         'dashboard.html', 
@@ -99,8 +99,8 @@ def dashboard():
         pelanggan_unik=pelanggan_unik,
         total_profit=total_profit,
         profit_harian=profit_harian,
-        user=session.get('user'), 
-        role=session.get('role')
+        user=session.get('user', 'engineer'), 
+        role=session.get('role', 'Engineer')
     )
 
 if __name__ == '__main__':
