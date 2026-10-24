@@ -2,130 +2,174 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tools Transaksi - ATMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-receipt, #printable-receipt * { visibility: visible; }
+            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
 </head>
-<body class="bg-gray-50 flex h-screen overflow-hidden">
+<body class="bg-slate-900 text-slate-100 flex h-screen overflow-hidden">
 
-    <!-- SIDEBAR KIRI -->
-    <aside class="w-64 bg-slate-900 text-white flex flex-col justify-between shadow-xl">
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-slate-950 text-slate-300 flex flex-col justify-between hidden md:flex border-r border-slate-800">
         <div>
-            <div class="p-5 border-b border-slate-800 flex items-center space-x-3">
-                <div class="bg-green-500 text-slate-900 font-black p-2 rounded-lg text-lg">ATMS</div>
+            <div class="p-6 border-b border-slate-800/80 flex items-center space-x-3">
+                <div class="bg-emerald-500 text-slate-950 font-black p-2.5 rounded-xl shadow-lg shadow-emerald-500/20 text-lg">ATMS</div>
                 <div>
-                    <h1 class="font-bold text-sm">ARSHA TRANSFER</h1>
-                    <p class="text-[10px] text-slate-400">Management System</p>
+                    <h1 class="text-white font-bold text-sm tracking-wide">ARSHA TRANSFER</h1>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Management System</p>
                 </div>
             </div>
-            <nav class="p-4 space-y-1">
-                <a href="/dashboard" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800">📊 <span>Dashboard</span></a>
-                <a href="/transaksi" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium bg-green-600 text-white">💸 <span>Tools Transaksi</span></a>
-                <a href="/kalkulator-modal" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800">🧮 <span>Kalkulator Modal</span></a>
+            <nav class="p-4 space-y-1.5">
+                <a href="/dashboard" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-white font-medium transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/transaksi" class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>Tools Transaksi</span>
+                </a>
+                <a href="/kalkulator" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-white font-medium transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                    <span>Kalkulator Modal</span>
+                </a>
             </nav>
         </div>
-        <div class="p-4 border-t border-slate-800 bg-slate-950/50">
-            <p class="text-xs text-slate-400">Login:</p>
-            <p class="text-sm font-bold text-white">{{ user.nama_lengkap }}</p>
+        <div class="p-4 border-t border-slate-800 text-xs text-slate-400">
+            <p>Login sebagai:</p>
+            <p class="text-white font-semibold truncate mt-0.5">{{ user }} (<span class="text-emerald-400">{{ role }}</span>)</p>
         </div>
     </aside>
 
-    <!-- KONTEN UTAMA -->
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto p-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-1">Input Transaksi & Struk Pembayaran</h2>
-        <p class="text-xs text-gray-500 mb-6">Kp. Batuiuh RT 002 RW 002 Desa Gunamekar, Bungbulang, Garut</p>
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto bg-slate-900">
+        
+        <!-- HEADER -->
+        <header class="bg-slate-950/80 backdrop-blur border-b border-slate-800 px-8 py-4 flex justify-between items-center sticky top-0 z-20">
+            <div>
+                <h2 class="text-xl font-bold text-white tracking-tight">Input Transaksi & Struk Pembayaran</h2>
+                <p class="text-xs text-slate-400 font-medium">Kp. Batuiuh RT 002 RW 002 Desa Gunamekar, Bungbulang, Garut</p>
+            </div>
+            <a href="/logout" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-4 py-2 rounded-xl text-xs font-bold transition border border-rose-500/20">Logout</a>
+        </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-xs">
-                <form action="/transaksi" method="POST" class="space-y-4">
+        <!-- CONTAINER -->
+        <div class="p-8 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <!-- FORM INPUT -->
+            <div class="bg-slate-950 p-8 rounded-2xl border border-slate-800 shadow-xl">
+                <form method="POST" action="/transaksi" class="space-y-6">
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700">Nama Pelanggan</label>
-                        <input type="text" name="nama_pelanggan" required class="w-full mt-1 p-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Nama Pelanggan</label>
+                        <input type="text" name="sender_name" required placeholder="Masukkan nama pelanggan..." class="w-full bg-slate-900 border border-slate-700/60 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-emerald-500">
                     </div>
+
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700">Nomor WhatsApp (Contoh: 628xxxxxxxxxx)</label>
-                        <input type="text" name="no_wa" required placeholder="628..." class="w-full mt-1 p-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Nomor WhatsApp / Rekening</label>
+                        <input type="text" name="account_number" required placeholder="628xxxxxxxxxx / No Rekening..." class="w-full bg-slate-900 border border-slate-700/60 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-emerald-500">
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700">Jenis Transaksi</label>
-                            <select name="jenis_transaksi" class="w-full mt-1 p-2 border rounded-lg text-sm outline-none">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Jenis Transaksi</label>
+                            <select name="transaction_type" class="w-full bg-slate-900 border border-slate-700/60 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-emerald-500">
                                 <option value="Transfer">Transfer</option>
                                 <option value="Top Up">Top Up E-Wallet</option>
                                 <option value="Tarik Tunai">Tarik Tunai</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700">Bank / E-Wallet</label>
-                            <select name="bank_wallet" class="w-full mt-1 p-2 border rounded-lg text-sm outline-none">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Bank / E-Wallet</label>
+                            <select name="recipient_bank" class="w-full bg-slate-900 border border-slate-700/60 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-emerald-500">
                                 <option value="BRI">BRI</option>
                                 <option value="BCA">BCA</option>
+                                <option value="BNI">BNI</option>
+                                <option value="Mandiri">Mandiri</option>
                                 <option value="DANA">DANA</option>
-                                <option value="SeaBank">SeaBank</option>
+                                <option value="OVO">OVO</option>
+                                <option value="GoPay">GoPay</option>
                                 <option value="ShopeePay">ShopeePay</option>
                             </select>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700">Nominal (Rp)</label>
-                            <input type="number" name="nominal" required class="w-full mt-1 p-2 border rounded-lg text-sm outline-none">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Total Nominal (Rp)</label>
+                            <input type="number" name="amount" required placeholder="0" class="w-full bg-slate-900 border border-slate-700/60 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-emerald-500">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700">Biaya Admin / Profit (Rp)</label>
-                            <input type="number" name="admin" required class="w-full mt-1 p-2 border rounded-lg text-sm outline-none">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Biaya Admin / Profit (Rp)</label>
+                            <input type="number" name="admin_fee" required placeholder="0" class="w-full bg-slate-900 border border-slate-700/60 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-emerald-500">
                         </div>
                     </div>
-                    <button type="submit" class="w-full bg-green-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-green-700 transition">Proses & Cetak Struk</button>
+
+                    <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3.5 rounded-xl transition shadow-lg shadow-emerald-500/20 text-sm">Proses & Cetak Struk</button>
                 </form>
             </div>
 
+            <!-- AREA STRUK PEMBAYARAN -->
             <div>
-                {% if struk %}
-                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-md space-y-4">
-                    <div id="area-struk" class="bg-slate-50 p-6 rounded-lg border border-dashed border-slate-300 text-slate-800 font-mono text-xs space-y-2">
-                        <div class="text-center pb-2 border-b border-slate-200">
-                            <h3 class="font-black text-sm">ARSHA TRANSFER MANAGEMENT</h3>
-                            <p class="text-[10px] text-slate-500">Kp. Batuiuh RT 002 RW 002 Desa Gunamekar</p>
-                            <p class="text-[10px] text-slate-500">Kec. Bungbulang, Kab. Garut 44165</p>
+                {% if receipt %}
+                <div id="printable-receipt" class="bg-slate-950 p-8 rounded-2xl border border-emerald-500/50 shadow-2xl space-y-6">
+                    <div class="text-center border-b border-slate-800 pb-4">
+                        <h3 class="text-lg font-black text-white tracking-wider">ARSHA TRANSFER</h3>
+                        <p class="text-xs text-slate-400">Kp. Batuiuh Desa Gunamekar, Bungbulang, Garut</p>
+                        <span class="inline-block mt-2 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase border border-emerald-500/20">TRANSAKSI BERHASIL</span>
+                    </div>
+
+                    <div class="space-y-3 text-xs text-slate-300">
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Nama Pelanggan:</span>
+                            <span class="font-bold text-white">{{ receipt.sender_name }}</span>
                         </div>
-                        <div class="py-2 space-y-1">
-                            <div class="flex justify-between"><span>Tanggal:</span> <span>{{ struk.tanggal }}</span></div>
-                            <div class="flex justify-between"><span>Pelanggan:</span> <span>{{ struk.nama }}</span></div>
-                            <div class="flex justify-between"><span>Layanan:</span> <span class="font-bold">{{ struk.jenis }} ({{ struk.bank }})</span></div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Nomor Rek / WA:</span>
+                            <span class="font-semibold text-white">{{ receipt.account_number }}</span>
                         </div>
-                        <div class="py-2 border-t border-b border-slate-200 space-y-1">
-                            <div class="flex justify-between"><span>Nominal:</span> <span>Rp {{ "{:,.0f}".format(struk.nominal) }}</span></div>
-                            <div class="flex justify-between"><span>Biaya Admin:</span> <span>Rp {{ "{:,.0f}".format(struk.admin) }}</span></div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Jenis Transaksi:</span>
+                            <span class="font-semibold text-white">{{ receipt.transaction_type }}</span>
                         </div>
-                        <div class="flex justify-between font-bold pt-1 text-sm">
-                            <span>TOTAL BAYAR:</span> 
-                            <span>Rp {{ "{:,.0f}".format(struk.nominal + struk.admin) }}</span>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Bank / E-Wallet:</span>
+                            <span class="font-semibold text-emerald-400">{{ receipt.recipient_bank }}</span>
                         </div>
-                        <div class="text-center pt-4 text-[10px] text-slate-400">
-                            <p>Terima kasih atas kepercayaan Anda</p>
+                        <div class="border-t border-slate-800 pt-3 flex justify-between">
+                            <span class="text-slate-400">Nominal Transfer:</span>
+                            <span class="font-bold text-white">Rp {{ "{:,.0f}".format(receipt.amount).replace(",", ".") }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Biaya Admin:</span>
+                            <span class="font-bold text-emerald-400">Rp {{ "{:,.0f}".format(receipt.admin_fee).replace(",", ".") }}</span>
+                        </div>
+                        <div class="border-t border-slate-800 pt-3 flex justify-between text-sm font-black text-white">
+                            <span>Total Pembayaran:</span>
+                            <span class="text-emerald-400">Rp {{ "{:,.0f}".format(receipt.total_pay).replace(",", ".") }}</span>
                         </div>
                     </div>
 
-                    <div class="flex space-x-3">
-                        <button onclick="downloadPDF()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700">Download PDF</button>
-                        <a href="https://wa.me/{{ struk.wa }}?text=Halo%20{{ struk.nama }},%20berikut%20bukti%20transaksi%20{{ struk.jenis }}%20sebesar%20Rp{{ struk.nominal }}%20di%20Arsha%20Transfer%20Management.%20Terima%20kasih!" target="_blank" class="flex-1 bg-emerald-600 text-center py-2 rounded-lg text-xs font-bold text-white hover:bg-emerald-700">Kirim ke WA</a>
+                    <div class="pt-4 flex gap-3">
+                        <button onclick="window.print()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition">Cetak Struk</button>
+                        <a href="/transaksi" class="flex-1 text-center bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition border border-slate-700">Transaksi Baru</a>
                     </div>
                 </div>
                 {% else %}
-                <div class="bg-slate-100 p-12 rounded-xl border border-dashed border-slate-300 text-center text-slate-400 text-sm">
-                    Silakan isi form transaksi di samping untuk menerbitkan struk pembayaran.
+                <div class="bg-slate-950 p-8 rounded-2xl border border-slate-800 shadow-xl flex flex-col items-center justify-center h-full text-center text-slate-500 space-y-3 min-h-[350px]">
+                    <svg class="w-12 h-12 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <p class="text-xs">Struk transaksi di samping akan muncul setelah kamu mengisi formulir dan menekan tombol proses.</p>
                 </div>
                 {% endif %}
             </div>
+
         </div>
     </main>
-
-    <script>
-        function downloadPDF() {
-            const element = document.getElementById('area-struk');
-            html2pdf().from(element).save('Struk-ATMS.pdf');
-        }
-    </script>
 </body>
 </html>
