@@ -22,21 +22,36 @@ def logout():
 
 @app.route('/dashboard', methods=['GET'])
 def dashboard():
-    # Data statis aman tanpa koneksi eksternal yang bikin error 500
+    # Data statis lengkap sesuai dengan struktur template dashboard.html terbaru
     total_transaksi = 333
     total_volume = 1164537527.0
-    pelanggan_unik = 71
     total_profit = 6467500.0
+    pelanggan_unik = 71
+    
     profit_harian = 0.0
+    profit_mingguan = 795000.0
+    profit_bulanan = 2245000.0
+    profit_tahunan = 6467500.0
+
+    chart_labels = ['Juni 2026', 'Juli 2026', 'Agustus 2026', 'September 2026', 'Oktober 2026']
+    chart_volumes = [20000000, 18000000, 230000000, 480000000, 415000000]
+    
+    logs = []
 
     return render_template(
-        'dashboard.html', 
-        total_transaksi=total_transaksi, 
-        total_volume=total_volume, 
-        pelanggan_unik=pelanggan_unik,
+        'dashboard.html',
+        total_transaksi=total_transaksi,
+        total_volume=total_volume,
         total_profit=total_profit,
+        pelanggan_unik=pelanggan_unik,
         profit_harian=profit_harian,
-        user='engineer', 
+        profit_mingguan=profit_mingguan,
+        profit_bulanan=profit_bulanan,
+        profit_tahunan=profit_tahunan,
+        chart_labels=chart_labels,
+        chart_volumes=chart_volumes,
+        logs=logs,
+        user='engineer',
         role='Engineer'
     )
 
