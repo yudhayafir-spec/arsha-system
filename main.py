@@ -1,10 +1,10 @@
 import os
 import pandas as pd
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = 'arsha_secret_key_system'
 
 def get_db_connection():
@@ -16,6 +16,15 @@ def get_db_connection():
         database="arsha_db",
         ssl_disabled=False
     )
+
+# RUTE SERVING FILE PWA MANIFEST & SERVICE WORKER
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory(app.root_path, 'manifest.json')
+
+@app.route('/sw.js')
+def service_worker():
+    return send_from_directory(app.root_path, 'sw.js')
 
 @app.route('/')
 def index():
@@ -70,7 +79,6 @@ def dashboard():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # Summary Query
         cursor.execute("""
             SELECT 
                 COUNT(*) as total_transaksi, 
@@ -86,12 +94,10 @@ def dashboard():
             pelanggan_unik = summary['pelanggan_unik']
             total_profit = float(summary['total_profit'])
 
-        # Profit Harian
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE DATE(created_at) = CURDATE()")
         res_h = cursor.fetchone()
         profit_harian = float(res_h['p']) if res_h and res_h['p'] else 0.0
 
-        # Fetch Logs
         cursor.execute("SELECT * FROM transfer_logs ORDER BY created_at DESC LIMIT 50")
         logs = cursor.fetchall()
 
@@ -100,7 +106,6 @@ def dashboard():
     except Exception as e:
         print("Dashboard Error:", e)
 
-    # SEKARANG MERENDER index.html (Tampilan Mobile Arsha Group)
     return render_template(
         'index.html', 
         logs=logs, 
@@ -116,7 +121,7 @@ def dashboard():
 @app.route('/transaksi', methods=['POST'])
 def transaksi_api():
     if not session.get('logged_in'):
-        return {'status': 'unauthorized'}, 401
+        return redirect(url_for('login'))
     
     data = request.form
     try:
@@ -137,11 +142,12 @@ def transaksi_api():
         conn.commit()
         cursor.close()
         conn.close()
-        return {'status': 'success', 'message': 'Transaksi berhasil disimpan!'}
     except Exception as e:
-        return {'status': 'error', 'message': str(e)}, 500
+        print("Transaction Error:", e)
 
-@app.route('/delete/<int:id>', methods=['POST', 'GET'])
+    return redirect(url_for('dashboard'))
+
+@app.route('/delete/<int:id>', methods=['GET'])
 def delete_transaction(id):
     if not session.get('logged_in'):
         return redirect(url_for('login'))
