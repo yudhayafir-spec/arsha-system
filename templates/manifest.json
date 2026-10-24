@@ -1,8 +1,8 @@
 {
-  "name": "Arsha Group - Agen Bank",
+  "name": "Arsha Group - Agen Bank & Solusi Keuangan",
   "short_name": "Arsha Group",
-  "description": "Aplikasi Agen Bank & Solusi Keuangan",
-  "start_url": "/dashboard",
+  "description": "Aplikasi Mobile Agen Bank & Solusi Keuangan",
+  "start_url": "/mobile",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0284c7",
