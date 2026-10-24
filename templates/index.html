@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Arsha Group - Agen Bank & Solusi Keuangan</title>
+    <!-- Tailwind CSS & Chart.js -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .main-wrapper {
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background-color: #f8fafc;
+            position: relative;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+        .blue-header {
+            background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+            border-bottom-left-radius: 28px;
+            border-bottom-right-radius: 28px;
+            padding: 16px 20px 70px 20px;
+        }
+        .floating-card {
+            margin-top: -55px;
+            box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+        }
+        .nav-active {
+            color: #0284c7 !important;
+            font-weight: 800 !important;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-receipt, #printable-receipt * { visibility: visible; }
+            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-wrapper">
+
+        <!-- TOP BLUE HEADER -->
+        <div class="blue-header text-white">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-11 h-11 rounded-2xl bg-white text-[#0284c7] font-extrabold flex items-center justify-center text-base shadow-md border border-sky-100">
+                        AG
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-extrabold tracking-tight leading-tight">Arsha Group</h1>
+                        <p class="text-[11px] text-sky-100 font-medium">Agen Bank & Solusi Keuangan</p>
+                    </div>
+                </div>
+                <div class="bg-sky-500/30 backdrop-blur-md px-3 py-1 rounded-full border border-sky-300/30 flex items-center space-x-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-[10px] font-bold text-white uppercase tracking-wider">Online</span>
+                </div>
+            </div>
+
+            <!-- TAB MENU TOP -->
+            <div class="flex justify-around border-t border-sky-400/30 pt-3 text-xs font-semibold text-sky-100">
+                <button onclick="switchTab('home')" id="top-tab-home" class="flex items-center space-x-1.5 text-white font-bold border-b-2 border-white pb-1">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Home</span>
+                </button>
+                <button onclick="openSupportModal()" class="flex items-center space-x-1.5 text-sky-100 hover:text-white pb-1">
+                    <i class="fa-solid fa-headset"></i>
+                    <span>Support</span>
+                </button>
+                <button onclick="switchTab('akun')" id="top-tab-akun" class="flex items-center space-x-1.5 text-sky-100 hover:text-white pb-1">
+                    <i class="fa-solid fa-user"></i>
+                    <span>Akun</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- MAIN SCROLLABLE AREA -->
+        <div class="flex-1 px-5 pb-24 overflow-y-auto hide-scrollbar">
+
+            <!-- TAB 1: HOME VIEW -->
+            <div id="view-home" class="space-y-5">
+
+                <!-- FLOATING SUMMARY CARD -->
+                <div class="floating-card bg-white rounded-3xl p-5 border border-slate-100 text-slate-800 space-y-3">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+                        <span class="text-xs font-semibold text-slate-500">Pemasukan Hari Ini</span>
+                        <span id="stat-pemasukan" class="text-sm font-extrabold text-[#0284c7]">Rp 0</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+                        <span class="text-xs font-semibold text-slate-500">Estimasi Fee / Profit</span>
+                        <span id="stat-profit" class="text-sm font-extrabold text-emerald-500">+Rp 0</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-0.5">
+                        <span class="text-xs font-bold text-slate-700">Total Volume Kas</span>
+                        <span id="stat-volume" class="text-base font-black text-slate-900">Rp 0</span>
+                    </div>
+                </div>
+
+                <!-- MAIN QUICK ACTIONS -->
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="openTransactionModal()" class="bg-[#0284c7] hover:bg-sky-700 active:scale-95 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-sky-500/20 transition">
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                        <span class="text-xs">+ Transaksi</span>
+                    </button>
+                    <button onclick="switchTab('laporan')" class="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/20 transition">
+                        <i class="fa-solid fa-file-invoice text-xs"></i>
+                        <span class="text-xs">Laporan</span>
+                    </button>
+                </div>
+
+                <!-- LAYANAN UTAMA AGEN GRID -->
+                <div>
+                    <h2 class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-3 px-1">Layanan Utama Agen</h2>
+                    <div class="grid grid-cols-4 gap-2.5">
+                        <button onclick="openTransactionModal('Transfer')" class="flex flex-col items-center p-3 bg-white rounded-2xl border border-slate-100 hover:border-sky-200 active:scale-95 transition shadow-sm group">
+                            <div class="w-10 h-10 rounded-2xl bg-sky-50 text-[#0284c7] flex items-center justify-center text-base mb-1.5 group-hover:bg-[#0284c7] group-hover:text-white transition">
+                                <i class="fa-solid fa-money-bill-transfer"></i>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-700 text-center leading-tight">Transfer Bank</span>
+                        </button>
+
+                        <button onclick="openTransactionModal('Tarik Tunai')" class="flex flex-col items-center p-3 bg-white rounded-2xl border border-slate-100 hover:border-emerald-200 active:scale-95 transition shadow-sm group">
+                            <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-base mb-1.5 group-hover:bg-emerald-500 group-hover:text-white transition">
+                                <i class="fa-solid fa-hand-holding-dollar"></i>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-700 text-center leading-tight">Tarik Tunai</span>
+                        </button>
+
+                        <button onclick="openTransactionModal('Top Up')" class="flex flex-col items-center p-3 bg-white rounded-2xl border border-slate-100 hover:border-indigo-200 active:scale-95 transition shadow-sm group">
+                            <div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-base mb-1.5 group-hover:bg-indigo-600 group-hover:text-white transition">
+                                <i class="fa-solid fa-wallet"></i>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-700 text-center leading-tight">E-Wallet</span>
+                        </button>
+
+                        <button onclick="openKalkulatorModal()" class="flex flex-col items-center p-3 bg-white rounded-2xl border border-slate-100 hover:border-amber-200 active:scale-95 transition shadow-sm group">
+                            <div class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-base mb-1.5 group-hover:bg-amber-500 group-hover:text-white transition">
+                                <i class="fa-solid fa-calculator"></i>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-700 text-center leading-tight">Kalkulator</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- RECENT TRANSACTIONS -->
+                <div class="bg-white rounded-3xl p-4 border border-slate-100 shadow-sm space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-extrabold text-slate-800 uppercase tracking-wide">Transaksi Terakhir</h3>
+                        <button onclick="switchTab('laporan')" class="text-[11px] font-bold text-[#0284c7] hover:underline">Lihat Semua</button>
+                    </div>
+
+                    <div id="recent-transactions-list" class="space-y-2.5">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TAB 2: LAPORAN VIEW -->
+            <div id="view-laporan" class="space-y-4 hidden pt-3">
+                <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-xs font-extrabold text-slate-800 uppercase">Laporan Performa</h2>
+                            <p class="text-[10px] text-slate-400">Statistik keuntungan & volume kas</p>
+                        </div>
+                        <select id="report-period" onchange="updateReportStats()" class="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-700 focus:outline-none">
+                            <option value="today">Hari Ini</option>
+                            <option value="month" selected>Bulan Ini</option>
+                            <option value="all">Semua</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Total Profit Fee</p>
+                            <p id="report-total-profit" class="text-sm font-black text-emerald-500 mt-0.5">Rp 0</p>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Total Transaksi</p>
+                            <p id="report-total-count" class="text-sm font-black text-slate-800 mt-0.5">0 Tx</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-1">
+                        <p class="text-xs font-bold text-slate-700 mb-2">Grafik Tren Bulanan</p>
+                        <div class="h-44 w-full">
+                            <canvas id="mobileReportChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+                    <h3 class="text-xs font-extrabold text-slate-800 uppercase">Histori Log Transaksi</h3>
+                    <div id="full-transactions-list" class="space-y-2.5 max-h-72 overflow-y-auto hide-scrollbar">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: AKUN VIEW -->
+            <div id="view-akun" class="space-y-4 hidden pt-3">
+                <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm text-center space-y-2.5">
+                    <div class="w-14 h-14 rounded-2xl bg-sky-100 text-[#0284c7] font-black flex items-center justify-center text-xl mx-auto border border-sky-200">
+                        AG
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-extrabold text-slate-800">Arsha Group Outlet</h2>
+                        <p class="text-[11px] text-slate-400 font-medium">Bungbulang, Garut, Jawa Barat</p>
+                    </div>
+                    <span class="inline-block bg-emerald-100 text-emerald-700 text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase">Status: Agen Resmi</span>
+                </div>
+
+                <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden text-xs font-semibold text-slate-700 divide-y divide-slate-100">
+                    <button onclick="fetchFromDatabase()" class="w-full p-3.5 flex justify-between items-center hover:bg-slate-50 transition">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-rotate text-[#0284c7]"></i>
+                            <span>Sinkronkan Database Cloud</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-300 text-[10px]"></i>
+                    </button>
+                    <button onclick="clearLocalData()" class="w-full p-3.5 flex justify-between items-center hover:bg-slate-50 text-rose-500 transition">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span>Reset Local Data</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-300 text-[10px]"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- STICKY BOTTOM NAVIGATION BAR -->
+        <div class="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-6 py-2 flex justify-between items-center z-40">
+            <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center space-y-0.5 nav-active transition">
+                <i class="fa-solid fa-house text-base"></i>
+                <span class="text-[10px] font-bold">Home</span>
+            </button>
+            <button onclick="openTransactionModal()" id="nav-transaksi" class="flex flex-col items-center space-y-0.5 text-slate-400 hover:text-[#0284c7] transition">
+                <div class="w-10 h-10 -mt-5 rounded-full bg-[#0284c7] text-white flex items-center justify-center shadow-lg shadow-sky-500/30">
+                    <i class="fa-solid fa-plus text-sm"></i>
+                </div>
+                <span class="text-[10px] font-bold text-slate-500">Transaksi</span>
+            </button>
+            <button onclick="switchTab('laporan')" id="nav-laporan" class="flex flex-col items-center space-y-0.5 text-slate-400 hover:text-[#0284c7] transition">
+                <i class="fa-solid fa-clock-rotate-left text-base"></i>
+                <span class="text-[10px] font-bold">Laporan</span>
+            </button>
+            <button onclick="switchTab('akun')" id="nav-akun" class="flex flex-col items-center space-y-0.5 text-slate-400 hover:text-[#0284c7] transition">
+                <i class="fa-solid fa-user-gear text-base"></i>
+                <span class="text-[10px] font-bold">Akun</span>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- FORM MODAL TRANSAKSI -->
+    <div id="modal-transaksi" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4 hidden z-50">
+        <div class="bg-white w-full max-w-[480px] rounded-t-3xl sm:rounded-3xl p-5 space-y-3.5">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+                <h3 class="text-xs font-extrabold text-slate-800 uppercase">Input Transaksi Agen</h3>
+                <button onclick="closeTransactionModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-base"></i></button>
+            </div>
+
+            <form id="form-tx" onsubmit="handleTransactionSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-600 mb-1">Nama Pelanggan</label>
+                    <input type="text" id="tx-nama" required placeholder="Contoh: Yuda" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-800 focus:outline-none focus:border-[#0284c7]">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Jenis Transaksi</label>
+                        <select id="tx-jenis" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-800 focus:outline-none focus:border-[#0284c7]">
+                            <option value="Transfer">Transfer Bank</option>
+                            <option value="Tarik Tunai">Tarik Tunai</option>
+                            <option value="Top Up">Top Up E-Wallet</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Bank / Wallet</label>
+                        <select id="tx-bank" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-800 focus:outline-none focus:border-[#0284c7]">
+                            <option value="BRI">BRI</option>
+                            <option value="BCA">BCA</option>
+                            <option value="BNI">BNI</option>
+                            <option value="Mandiri">Mandiri</option>
+                            <option value="DANA">DANA</option>
+                            <option value="OVO">OVO</option>
+                            <option value="ShopeePay">ShopeePay</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-600 mb-1">Nomor Rekening / WA</label>
+                    <input type="text" id="tx-norek" required placeholder="628xxxxxxxx / No Rek" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-800 focus:outline-none focus:border-[#0284c7]">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Nominal (Rp)</label>
+                        <input type="number" id="tx-nominal" required placeholder="0" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-800 focus:outline-none focus:border-[#0284c7]">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Fee Admin (Rp)</label>
+                        <input type="number" id="tx-fee" required placeholder="5000" value="5000" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-800 focus:outline-none focus:border-[#0284c7]">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-[#0284c7] hover:bg-sky-700 text-white font-extrabold py-3 rounded-2xl transition shadow-lg shadow-sky-500/20 text-xs">Simpan & Cetak Struk</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- LOGIC SCRIPT -->
+    <script>
+        let transactions = JSON.parse(localStorage.getItem('arsha_tx_data')) || [
+            { id: 338, nama: 'Yuda', jenis: 'Transfer', bank: 'BRI', norek: '6282317972907', nominal: 500000, fee: 5000, date: '2026-10-24 02:08:38' },
+            { id: 337, nama: 'Umum', jenis: 'Transfer', bank: 'BRI', norek: '-', nominal: 100000, fee: 5000, date: '2026-10-24 02:03:10' }
+        ];
+
+        let reportChartInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderDashboard();
+            initReportChart();
+        });
+
+        function saveToStorage() {
+            localStorage.setItem('arsha_tx_data', JSON.stringify(transactions));
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            const totalVolume = transactions.reduce((sum, item) => sum + item.nominal, 0);
+            const totalProfit = transactions.reduce((sum, item) => sum + item.fee, 0);
+            const totalPemasukan = totalVolume + totalProfit;
+
+            document.getElementById('stat-pemasukan').innerText = 'Rp ' + totalPemasukan.toLocaleString('id-ID');
+            document.getElementById('stat-profit').innerText = '+Rp ' + totalProfit.toLocaleString('id-ID');
+            document.getElementById('stat-volume').innerText = 'Rp ' + totalVolume.toLocaleString('id-ID');
+
+            const recentContainer = document.getElementById('recent-transactions-list');
+            recentContainer.innerHTML = '';
+
+            const recent = transactions.slice(-5).reverse();
+            if (recent.length === 0) {
+                recentContainer.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Belum ada transaksi.</p>';
+            } else {
+                recent.forEach(tx => {
+                    recentContainer.innerHTML += `
+                        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div class="flex items-center space-x-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-sky-100 text-[#0284c7] flex items-center justify-center font-bold text-[11px]">
+                                    ${tx.bank}
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-800">${tx.nama}</p>
+                                    <p class="text-[10px] text-slate-400">${tx.jenis} • #${tx.id}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs font-extrabold text-slate-800">Rp ${tx.nominal.toLocaleString('id-ID')}</p>
+                                <p class="text-[10px] font-bold text-emerald-500">+Fee Rp ${tx.fee.toLocaleString('id-ID')}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            updateReportStats();
+        }
+
+        function switchTab(tabName) {
+            document.getElementById('view-home').classList.add('hidden');
+            document.getElementById('view-laporan').classList.add('hidden');
+            document.getElementById('view-akun').classList.add('hidden');
+
+            document.getElementById('nav-home').classList.remove('nav-active');
+            document.getElementById('nav-laporan').classList.remove('nav-active');
+            document.getElementById('nav-akun').classList.remove('nav-active');
+
+            if (tabName === 'home') {
+                document.getElementById('view-home').classList.remove('hidden');
+                document.getElementById('nav-home').classList.add('nav-active');
+            } else if (tabName === 'laporan') {
+                document.getElementById('view-laporan').classList.remove('hidden');
+                document.getElementById('nav-laporan').classList.add('nav-active');
+            } else if (tabName === 'akun') {
+                document.getElementById('view-akun').classList.remove('hidden');
+                document.getElementById('nav-akun').classList.add('nav-active');
+            }
+        }
+
+        function openTransactionModal(jenis = 'Transfer') {
+            document.getElementById('tx-jenis').value = jenis;
+            document.getElementById('modal-transaksi').classList.remove('hidden');
+        }
+
+        function closeTransactionModal() {
+            document.getElementById('modal-transaksi').classList.add('hidden');
+        }
+
+        function handleTransactionSubmit(event) {
+            event.preventDefault();
+            const newTx = {
+                id: Math.floor(100 + Math.random() * 900),
+                nama: document.getElementById('tx-nama').value,
+                jenis: document.getElementById('tx-jenis').value,
+                bank: document.getElementById('tx-bank').value,
+                norek: document.getElementById('tx-norek').value,
+                nominal: parseFloat(document.getElementById('tx-nominal').value) || 0,
+                fee: parseFloat(document.getElementById('tx-fee').value) || 0,
+                date: new Date().toISOString().slice(0, 19).replace('T', ' ')
+            };
+
+            transactions.push(newTx);
+            saveToStorage();
+            closeTransactionModal();
+            document.getElementById('form-tx').reset();
+            alert('Transaksi #' + newTx.id + ' Berhasil Disimpan!');
+        }
+
+        function initReportChart() {
+            const ctx = document.getElementById('mobileReportChart').getContext('2d');
+            reportChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'],
+                    datasets: [{
+                        label: 'Volume (Rp)',
+                        data: [1200000, 1900000, 3000000, 2500000, 2200000, 3500000],
+                        backgroundColor: '#0284c7',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        function updateReportStats() {
+            const totalProfit = transactions.reduce((sum, item) => sum + item.fee, 0);
+            document.getElementById('report-total-profit').innerText = 'Rp ' + totalProfit.toLocaleString('id-ID');
+            document.getElementById('report-total-count').innerText = transactions.length + ' Tx';
+
+            const fullList = document.getElementById('full-transactions-list');
+            fullList.innerHTML = '';
+            transactions.slice().reverse().forEach(tx => {
+                fullList.innerHTML += `
+                    <div class="flex justify-between items-center p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs">
+                        <div>
+                            <p class="font-bold text-slate-800">#${tx.id} - ${tx.nama}</p>
+                            <p class="text-[10px] text-slate-400">${tx.date}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-slate-800">Rp ${tx.nominal.toLocaleString('id-ID')}</p>
+                            <button onclick="deleteTx(${tx.id})" class="text-[10px] font-bold text-rose-500">Hapus</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function deleteTx(id) {
+            if (confirm('Yakin ingin menghapus transaksi #' + id + '?')) {
+                transactions = transactions.filter(t => t.id !== id);
+                saveToStorage();
+            }
+        }
+
+        function clearLocalData() {
+            if (confirm('Reset seluruh data transaksi percobaan?')) {
+                transactions = [];
+                saveToStorage();
+            }
+        }
+
+        function fetchFromDatabase() {
+            alert('Menghubungkan ke TiDB Cloud...');
+        }
+
+        function openSupportModal() {
+            alert('Customer Service Arsha Group:\nWhatsApp: 6282317972907');
+        }
+
+        function openKalkulatorModal() {
+            alert('Fitur Kalkulator Margin Fee Siap Digunakan!');
+        }
+    </script>
+</body>
+</html>
