@@ -147,6 +147,7 @@
                                 <th class="py-3.5 px-6">Tipe / Bank</th>
                                 <th class="py-3.5 px-6">Total Nominal</th>
                                 <th class="py-3.5 px-6">Admin / Profit</th>
+                                <th class="py-3.5 px-6 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-800/60 text-xs text-slate-300 font-medium">
@@ -159,11 +160,14 @@
                                     <td class="py-4 px-6">{{ log.recipient_bank }} <span class="text-slate-500">({{ log.account_number }})</span></td>
                                     <td class="py-4 px-6 font-bold text-emerald-400">Rp {{ "{:,.0f}".format(log.total_pay).replace(",", ".") }}</td>
                                     <td class="py-4 px-6 text-emerald-400 font-bold">Rp {{ "{:,.0f}".format(log.admin_fee).replace(",", ".") }}</td>
+                                    <td class="py-4 px-6 text-center">
+                                        <a href="/delete/{{ log.id }}" onclick="return confirm('Yakin ingin menghapus transaksi #{{ log.id }} ini?');" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-3 py-1.5 rounded-lg font-bold transition border border-rose-500/20">Hapus</a>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="6" class="text-center py-12 text-slate-500">Belum ada data histori transaksi untuk periode ini.</td>
+                                    <td colspan="7" class="text-center py-12 text-slate-500">Belum ada data histori transaksi untuk periode ini.</td>
                                 </tr>
                             {% endif %}
                         </tbody>
