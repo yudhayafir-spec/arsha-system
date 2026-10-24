@@ -131,7 +131,7 @@ def dashboard():
         res_t = cursor.fetchone()
         profit_tahunan = float(res_t['p']) if res_t and res_t['p'] else 0.0
 
-        # 3. Data Grafik PER BULAN
+        # 3. Data Grafik PER BULAN (Monthly Aggregation)
         query_chart = f"""
             SELECT DATE_FORMAT(created_at, '%Y-%m') as bulan, SUM(total_pay) as vol 
             FROM transfer_logs {where_sql}
@@ -142,7 +142,11 @@ def dashboard():
         chart_rows = cursor.fetchall()
         for r in chart_rows:
             parts = r['bulan'].split('-')
-            months_id = {'01':'Januari', '02':'Februari', '03':'Maret', '04':'April', '05':'Mei', '06':'Juni', '07':'Juli', '08':'Agustus', '09':'September', '10':'Oktober', '11':'November', '12':'Desember'}
+            months_id = {
+                '01': 'Januari', '02': 'Februari', '03': 'Maret', '04': 'April',
+                '05': 'Mei', '06': 'Juni', '07': 'Juli', '08': 'Agustus',
+                '09': 'September', '10': 'Oktober', '11': 'November', '12': 'Desember'
+            }
             m_name = months_id.get(parts[1], parts[1])
             chart_labels.append(f"{m_name} {parts[0]}")
             chart_volumes.append(float(r['vol']))
@@ -180,14 +184,50 @@ def transaksi():
         return redirect(url_for('login'))
         
     if request.method == 'POST':
-        sender_name = request.form.get('sender_name') or request.form.get('nama') or 'Umum'
-        account_number = request.form.get('account_number') or request.form.get('no_rek') or '-'
-        recipient_bank = request.form.get('recipient_bank') or request.form.get('bank') or 'BRI'
-        transaction_type = request.form.get('transaction_type') or request.form.get('tipe') or 'Transfer'
+        # Tangkap data form dari berbagai alternatif atribut nama HTML
+        sender_name = (
+            request.form.get('sender_name') or 
+            request.form.get('nama') or 
+            request.form.get('customer') or 
+            'Umum'
+        )
+        
+        account_number = (
+            request.form.get('account_number') or 
+            request.form.get('no_rek') or 
+            request.form.get('nomor_wa') or 
+            request.form.get('whatsapp') or 
+            '-'
+        )
+        
+        recipient_bank = (
+            request.form.get('recipient_bank') or 
+            request.form.get('bank') or 
+            request.form.get('bank_wallet') or 
+            'BRI'
+        )
+        
+        transaction_type = (
+            request.form.get('transaction_type') or 
+            request.form.get('tipe') or 
+            request.form.get('jenis_transaksi') or 
+            'Transfer'
+        )
         
         try:
-            total_pay = float(request.form.get('amount', 0) or request.form.get('total_pay', 0))
-            admin_fee = float(request.form.get('admin_fee', 0) or request.form.get('admin', 0))
+            total_pay = float(
+                request.form.get('amount') or 
+                request.form.get('total_pay') or 
+                request.form.get('total') or 
+                request.form.get('nominal') or 
+                0
+            )
+            admin_fee = float(
+                request.form.get('admin_fee') or 
+                request.form.get('admin') or 
+                request.form.get('biaya_admin') or 
+                0
+            )
         except ValueError:
             total_pay = 0.0
             admin_fee = 0.0
