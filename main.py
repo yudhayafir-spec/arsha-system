@@ -131,7 +131,7 @@ def dashboard():
         res_t = cursor.fetchone()
         profit_tahunan = float(res_t['p']) if res_t and res_t['p'] else 0.0
 
-        # 3. Data Grafik PER BULAN (Monthly Aggregation)
+        # 3. Data Grafik PER BULAN
         query_chart = f"""
             SELECT DATE_FORMAT(created_at, '%Y-%m') as bulan, SUM(total_pay) as vol 
             FROM transfer_logs {where_sql}
@@ -174,10 +174,42 @@ def dashboard():
         role=session.get('role')
     )
 
-@app.route('/transaksi', methods=['GET'])
+@app.route('/transaksi', methods=['GET', 'POST'])
 def transaksi():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
+        
+    if request.method == 'POST':
+        sender_name = request.form.get('sender_name') or request.form.get('nama') or 'Umum'
+        account_number = request.form.get('account_number') or request.form.get('no_rek') or '-'
+        recipient_bank = request.form.get('recipient_bank') or request.form.get('bank') or 'BRI'
+        transaction_type = request.form.get('transaction_type') or request.form.get('tipe') or 'Transfer'
+        
+        try:
+            total_pay = float(request.form.get('amount', 0) or request.form.get('total_pay', 0))
+            admin_fee = float(request.form.get('admin_fee', 0) or request.form.get('admin', 0))
+        except ValueError:
+            total_pay = 0.0
+            admin_fee = 0.0
+            
+        amount = total_pay - admin_fee
+
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO transfer_logs 
+                (sender_name, recipient_bank, account_number, recipient_name, amount, admin_fee, total_pay, created_by)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (sender_name, recipient_bank, account_number, sender_name, amount, admin_fee, total_pay, session.get('user')))
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print("Insert Transaksi Error:", e)
+            
+        return redirect(url_for('dashboard'))
+
     return render_template('transaksi.html', user=session.get('user'), role=session.get('role'))
 
 @app.route('/kalkulator', methods=['GET'])
