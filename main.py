@@ -22,6 +22,7 @@ def logout():
 
 @app.route('/dashboard', methods=['GET'])
 def dashboard():
+    # Angka real ATMS sesuai data awal
     total_transaksi = 333
     total_volume = 1164537527.0
     total_profit = 6467500.0
