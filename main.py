@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -17,7 +16,7 @@ def get_db_connection():
         ssl_disabled=False
     )
 
-# RUTE SERVING FILE PWA MANIFEST & SERVICE WORKER
+# PWA SERVING
 @app.route('/manifest.json')
 def manifest():
     return send_from_directory(app.root_path, 'manifest.json')
@@ -63,8 +62,16 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+# DASHBOARD DESKTOP LAMA (TIDAK BERUBAH)
 @app.route('/dashboard', methods=['GET'])
 def dashboard():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    return render_template('dashboard.html', user=session.get('user'), role=session.get('role'))
+
+# APLIKASI MOBILE ARSHA GROUP (KHUSUS HP / PWA)
+@app.route('/mobile', methods=['GET'])
+def mobile_app():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
 
@@ -104,7 +111,7 @@ def dashboard():
         cursor.close()
         conn.close()
     except Exception as e:
-        print("Dashboard Error:", e)
+        print("Mobile App Error:", e)
 
     return render_template(
         'index.html', 
@@ -118,8 +125,8 @@ def dashboard():
         role=session.get('role')
     )
 
-@app.route('/transaksi', methods=['POST'])
-def transaksi_api():
+@app.route('/mobile/transaksi', methods=['POST'])
+def mobile_transaksi():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     
@@ -145,10 +152,10 @@ def transaksi_api():
     except Exception as e:
         print("Transaction Error:", e)
 
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('mobile_app'))
 
-@app.route('/delete/<int:id>', methods=['GET'])
-def delete_transaction(id):
+@app.route('/mobile/delete/<int:id>', methods=['GET'])
+def mobile_delete(id):
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     try:
@@ -160,7 +167,7 @@ def delete_transaction(id):
         conn.close()
     except Exception as e:
         print("Delete Error:", e)
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('mobile_app'))
 
 if __name__ == '__main__':
     app.run(debug=True)
