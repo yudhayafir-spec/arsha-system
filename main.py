@@ -33,30 +33,26 @@ def logout():
 
 @app.route('/dashboard', methods=['GET'])
 def dashboard():
-    # Fallback default values
-    total_transaksi = 333
-    total_volume = 1164537527.0
-    total_profit = 6467500.0
-    pelanggan_unik = 71
+    total_transaksi = 0
+    total_volume = 0.0
+    total_profit = 0.0
+    pelanggan_unik = 0
     
     profit_harian = 0.0
-    profit_mingguan = 795000.0
-    profit_bulanan = 2245000.0
-    profit_tahunan = 6467500.0
+    profit_mingguan = 0.0
+    profit_bulanan = 0.0
+    profit_tahunan = 0.0
 
     chart_labels = ['Juni 2026', 'Juli 2026', 'Agustus 2026', 'September 2026', 'Oktober 2026']
     chart_volumes = [20000000, 18000000, 230000000, 480000000, 415000000]
     
-    logs = [
-        {"id": 1, "created_at": "24-10-2026 14:00", "sender_name": "Budi Santoso", "recipient_bank": "BRI", "account_number": "1234567890", "total_pay": 500000.0, "admin_fee": 10000.0},
-        {"id": 2, "created_at": "24-10-2026 15:30", "sender_name": "Siti Aminah", "recipient_bank": "BCA", "account_number": "0987654321", "total_pay": 1250000.0, "admin_fee": 15000.0}
-    ]
+    logs = []
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # Ambil ringkasan utama
+        # Ambil ringkasan utama murni dari database
         cursor.execute("""
             SELECT 
                 COUNT(*) as total_transaksi, 
@@ -66,18 +62,18 @@ def dashboard():
             FROM transfer_logs
         """)
         summary = cursor.fetchone()
-        if summary and summary['total_transaksi'] > 0:
+        if summary:
             total_transaksi = summary['total_transaksi']
             total_volume = float(summary['total_volume'])
             pelanggan_unik = summary['pelanggan_unik']
             total_profit = float(summary['total_profit'])
 
-        # Profit Harian
+        # Profit Harian dari database
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE DATE(created_at) = CURDATE()")
         res_h = cursor.fetchone()
         if res_h: profit_harian = float(res_h['p'])
 
-        # Profit Mingguan (7 hari terakhir)
+        # Profit Mingguan
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")
         res_m = cursor.fetchone()
         if res_m: profit_mingguan = float(res_m['p'])
@@ -92,16 +88,14 @@ def dashboard():
         res_t = cursor.fetchone()
         if res_t: profit_tahunan = float(res_t['p'])
 
-        # Ambil Histori Transaksi Terbaru dari Database
-        cursor.execute("SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY id DESC LIMIT 10")
-        db_logs = cursor.fetchall()
-        if db_logs:
-            logs = db_logs
+        # Histori Transaksi Asli dari TiDB Cloud (Urut dari yang terbaru hari ini)
+        cursor.execute("SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY id DESC LIMIT 20")
+        logs = cursor.fetchall()
 
         cursor.close()
         conn.close()
     except Exception as e:
-        print("DB Connected using fallback data due to:", e)
+        print("DB Error:", e)
 
     return render_template(
         'dashboard.html',
@@ -142,7 +136,7 @@ def transaksi():
             'total_pay': total_pay
         }
 
-        # Simpan ke database jika koneksi aktif
+        # Simpan transaksi baru langsung ke database TiDB Cloud
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -158,9 +152,9 @@ def transaksi():
 
     return render_template(
         'transaksi.html',
-        receipt=receipt,
-        user='engineer',
-        role='Engineer'
+          receipt=receipt,
+          user='engineer',
+          role='Engineer'
     )
 
 @app.route('/kalkulator', methods=['GET'])
