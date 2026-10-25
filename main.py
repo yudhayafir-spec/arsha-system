@@ -48,7 +48,6 @@ def dashboard():
     chart_volumes = [20000000, 18000000, 230000000, 480000000, 415000000]
     logs = []
 
-    # Ambil parameter sorting dari URL (default DESC agar ID terbesar / terbaru di atas)
     sort_order = request.args.get('sort', 'DESC').upper()
     if sort_order not in ['ASC', 'DESC']:
         sort_order = 'DESC'
@@ -88,8 +87,8 @@ def dashboard():
         res_t = cursor.fetchone()
         if res_t: profit_tahunan = float(res_t['p'])
 
-        # Query sorting berdasarkan id murni agar transaksi baru (ID terbesar) pasti di atas
-        query = f"SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY id {sort_order} LIMIT 50"
+        # Mengambil data diurutkan berdasarkan created_at dan id secara aman agar data terbaru pasti tampil
+        query = f"SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY created_at {sort_order}, id {sort_order} LIMIT 50"
         cursor.execute(query)
         logs = cursor.fetchall()
 
@@ -141,10 +140,11 @@ def transaksi():
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
+            # Memastikan penyimpanan memasukkan status default dan waktu NOW() agar terindeks rapi
             cursor.execute("""
-                INSERT INTO transfer_logs (sender_name, account_number, transaction_type, recipient_bank, total_pay, admin_fee, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, NOW())
-            """, (sender_name, account_number, transaction_type, recipient_bank, total_pay, admin_fee))
+                INSERT INTO transfer_logs (sender_name, account_number, transaction_type, recipient_bank, amount, admin_fee, total_pay, status, created_by, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 'SUCCESS', 'engineer', NOW())
+            """, (sender_name, account_number, transaction_type, recipient_bank, amount, admin_fee, total_pay))
             conn.commit()
             cursor.close()
             conn.close()
