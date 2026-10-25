@@ -83,7 +83,8 @@ def dashboard():
         res_t = cursor.fetchone()
         if res_t: profit_tahunan = float(res_t['p'])
 
-        cursor.execute("SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY id DESC LIMIT 20")
+        # REVISI UTAMA: Menggunakan ORDER BY created_at DESC agar transaksi malam/terbaru pasti muncul di atas
+        cursor.execute("SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY created_at DESC, id DESC LIMIT 20")
         logs = cursor.fetchall()
 
         cursor.close()
