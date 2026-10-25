@@ -48,6 +48,11 @@ def dashboard():
     chart_volumes = [20000000, 18000000, 230000000, 480000000, 415000000]
     logs = []
 
+    # Ambil parameter sorting dari URL (default DESC agar yang terbaru di atas)
+    sort_order = request.args.get('sort', 'DESC').upper()
+    if sort_order not in ['ASC', 'DESC']:
+        sort_order = 'DESC'
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -83,8 +88,9 @@ def dashboard():
         res_t = cursor.fetchone()
         if res_t: profit_tahunan = float(res_t['p'])
 
-        # KUNCI UTAMA: Urutkan mutlak berdasarkan waktu input (created_at DESC) agar data yang baru dimasukkan detik ini langsung nongkrong di baris paling atas tabel!
-        cursor.execute("SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY created_at DESC LIMIT 15")
+        # Eksekusi query dengan sorting dinamis (ASC / DESC berdasarkan created_at & id)
+        query = f"SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY created_at {sort_order}, id {sort_order} LIMIT 50"
+        cursor.execute(query)
         logs = cursor.fetchall()
 
         cursor.close()
@@ -105,6 +111,7 @@ def dashboard():
         chart_labels=chart_labels,
         chart_volumes=chart_volumes,
         logs=logs,
+        current_sort=sort_order,
         user='engineer',
         role='Engineer'
     )
