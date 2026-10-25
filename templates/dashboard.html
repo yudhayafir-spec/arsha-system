@@ -132,9 +132,17 @@
 
             <!-- TABEL HISTORI TRANSAKSI -->
             <div class="bg-slate-950 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
-                <div class="p-6 border-b border-slate-800 flex justify-between items-center">
-                    <h3 class="text-base font-bold text-white">Histori Transaksi Terbaru</h3>
-                    <span class="text-xs text-slate-500">Database ATMS Synced</span>
+                <div class="p-6 border-b border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h3 class="text-base font-bold text-white">Histori Transaksi Terbaru</h3>
+                        <p class="text-xs text-slate-500">Database ATMS Synced</p>
+                    </div>
+                    <!-- TOMBOL FILTER URUTAN ASC / DESC -->
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-slate-400 font-medium">Urutan:</span>
+                        <a href="/dashboard?sort=DESC" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {% if current_sort == 'DESC' or not current_sort %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-700/60{% endif %}">Terbaru (DESC)</a>
+                        <a href="/dashboard?sort=ASC" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {% if current_sort == 'ASC' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-700/60{% endif %}">Terlama (ASC)</a>
+                    </div>
                 </div>
                 
                 <div class="overflow-x-auto">
