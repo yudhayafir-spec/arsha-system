@@ -47,6 +47,7 @@ def dashboard():
     chart_labels = ['Juni 2026', 'Juli 2026', 'Agustus 2026', 'September 2026', 'Oktober 2026']
     chart_volumes = [20000000, 18000000, 230000000, 480000000, 415000000]
     logs = []
+    db_status = "Connected Successfully"
 
     try:
         conn = get_db_connection()
@@ -83,15 +84,16 @@ def dashboard():
         res_t = cursor.fetchone()
         if res_t: profit_tahunan = float(res_t['p'])
 
-        # REVISI UTAMA: Menggunakan ORDER BY created_at DESC agar transaksi malam/terbaru pasti muncul di atas
-        cursor.execute("SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY created_at DESC, id DESC LIMIT 20")
+        # Ambil data diurutkan berdasarkan ID terbesar (karena ID makin besar pasti itu transaksi yang paling baru diinput)
+        cursor.execute("SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY id DESC LIMIT 15")
         logs = cursor.fetchall()
 
         cursor.close()
         conn.close()
     except Exception as e:
-        print("Database Connection Error:", e)
+        db_status = f"Error: {str(e)}"
 
+    # Masukin status database ke log pertama buat ngecek di web kalau perlu
     return render_template(
         'dashboard.html',
         total_transaksi=total_transaksi,
