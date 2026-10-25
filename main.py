@@ -87,8 +87,7 @@ def dashboard():
         res_t = cursor.fetchone()
         if res_t: profit_tahunan = float(res_t['p'])
 
-        # Mengambil data diurutkan berdasarkan created_at dan id secara aman agar data terbaru pasti tampil
-        query = f"SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY created_at {sort_order}, id {sort_order} LIMIT 50"
+        query = f"SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY id {sort_order} LIMIT 50"
         cursor.execute(query)
         logs = cursor.fetchall()
 
@@ -121,7 +120,6 @@ def transaksi():
     if request.method == 'POST':
         sender_name = request.form.get('sender_name')
         account_number = request.form.get('account_number')
-        transaction_type = request.form.get('transaction_type')
         recipient_bank = request.form.get('recipient_bank')
         amount = float(request.form.get('amount') or 0)
         admin_fee = float(request.form.get('admin_fee') or 0)
@@ -130,7 +128,6 @@ def transaksi():
         receipt = {
             'sender_name': sender_name,
             'account_number': account_number,
-            'transaction_type': transaction_type,
             'recipient_bank': recipient_bank,
             'amount': amount,
             'admin_fee': admin_fee,
@@ -140,11 +137,11 @@ def transaksi():
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            # Memastikan penyimpanan memasukkan status default dan waktu NOW() agar terindeks rapi
+            # DISESUAIKAN DENGAN KOLOM ASLI DATABASE: Menghapus transaction_type
             cursor.execute("""
-                INSERT INTO transfer_logs (sender_name, account_number, transaction_type, recipient_bank, amount, admin_fee, total_pay, status, created_by, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, 'SUCCESS', 'engineer', NOW())
-            """, (sender_name, account_number, transaction_type, recipient_bank, amount, admin_fee, total_pay))
+                INSERT INTO transfer_logs (sender_name, account_number, recipient_bank, amount, admin_fee, total_pay, status, created_by, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, 'SUCCESS', 'engineer', NOW())
+            """, (sender_name, account_number, recipient_bank, amount, admin_fee, total_pay))
             conn.commit()
             cursor.close()
             conn.close()
