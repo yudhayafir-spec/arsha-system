@@ -1,37 +1,3 @@
-import os
-import mysql.connector
-from flask import Flask, render_template, request, redirect, url_for, session
-
-app = Flask(__name__, static_folder='static', template_folder='templates')
-app.secret_key = 'arsha_secret_key_system'
-
-def get_db_connection():
-    return mysql.connector.connect(
-        host="gateway01.ap-northeast-1.prod.aws.tidbcloud.com",
-        port=4000,
-        user="41V1NDmRAAsJj5J.root",
-        password="jWFwGdgJrpaHP0AP",
-        database="arsha_db",
-        ssl_disabled=False,
-        connection_timeout=5
-    )
-
-@app.route('/')
-def index():
-    return redirect(url_for('dashboard'))
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    session['logged_in'] = True
-    session['user'] = 'engineer'
-    session['role'] = 'Engineer'
-    return redirect(url_for('dashboard'))
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
 @app.route('/dashboard', methods=['GET'])
 def dashboard():
     total_transaksi = 0
@@ -44,8 +10,8 @@ def dashboard():
     profit_bulanan = 0.0
     profit_tahunan = 0.0
 
-    chart_labels = ['Juni 2026', 'Juli 2026', 'Agustus 2026', 'September 2026', 'Oktober 2026']
-    chart_volumes = [20000000, 18000000, 230000000, 480000000, 415000000]
+    chart_labels = []
+    chart_volumes = []
     logs = []
 
     sort_order = request.args.get('sort', 'DESC').upper()
@@ -56,14 +22,25 @@ def dashboard():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("""
+        # Ambil parameter tanggal dari URL
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
+        date_filter = ""
+        params = []
+        if start_date and end_date:
+            date_filter = "WHERE created_at BETWEEN %s AND %s"
+            params = [start_date, end_date]
+
+        # 1. Ringkasan Utama (menyesuaikan filter tanggal jika ada)
+        cursor.execute(f"""
             SELECT 
                 COUNT(*) as total_transaksi, 
                 COALESCE(SUM(total_pay), 0) as total_volume, 
                 COUNT(DISTINCT sender_name) as pelanggan_unik,
                 COALESCE(SUM(admin_fee), 0) as total_profit
-            FROM transfer_logs
-        """)
+            FROM transfer_logs {date_filter}
+        """, params)
         summary = cursor.fetchone()
         if summary:
             total_transaksi = summary['total_transaksi']
@@ -71,6 +48,7 @@ def dashboard():
             pelanggan_unik = summary['pelanggan_unik']
             total_profit = float(summary['total_profit'])
 
+        # 2. Profit Dinamis (Harian, Mingguan, Bulanan, Tahunan)
         cursor.execute("SELECT COALESCE(SUM(admin_fee), 0) as p FROM transfer_logs WHERE DATE(created_at) = CURDATE()")
         res_h = cursor.fetchone()
         if res_h: profit_harian = float(res_h['p'])
@@ -87,6 +65,24 @@ def dashboard():
         res_t = cursor.fetchone()
         if res_t: profit_tahunan = float(res_t['p'])
 
+        # 3. Grafik Volume Riil Berdasarkan Data Database
+        cursor.execute("""
+            SELECT DATE_FORMAT(created_at, '%Y-%m') as bulan, SUM(total_pay) as total_vol 
+            FROM transfer_logs 
+            GROUP BY bulan 
+            ORDER BY bulan ASC 
+            LIMIT 6
+        """)
+        chart_data = cursor.fetchall()
+        for row in chart_data:
+            chart_labels.append(row['bulan'])
+            chart_volumes.append(float(row['total_vol']))
+
+        if not chart_labels:
+            chart_labels = ['Belum Ada Data']
+            chart_volumes = [0]
+
+        # 4. Histori Transaksi
         query = f"SELECT id, created_at, sender_name, recipient_bank, account_number, total_pay, admin_fee FROM transfer_logs ORDER BY id {sort_order} LIMIT 50"
         cursor.execute(query)
         logs = cursor.fetchall()
@@ -113,68 +109,3 @@ def dashboard():
         user='engineer',
         role='Engineer'
     )
-
-@app.route('/transaksi', methods=['GET', 'POST'])
-def transaksi():
-    receipt = None
-    if request.method == 'POST':
-        sender_name = request.form.get('sender_name')
-        account_number = request.form.get('account_number')
-        recipient_bank = request.form.get('recipient_bank')
-        amount = float(request.form.get('amount') or 0)
-        admin_fee = float(request.form.get('admin_fee') or 0)
-        total_pay = amount + admin_fee
-
-        receipt = {
-            'sender_name': sender_name,
-            'account_number': account_number,
-            'recipient_bank': recipient_bank,
-            'amount': amount,
-            'admin_fee': admin_fee,
-            'total_pay': total_pay
-        }
-
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            # DISESUAIKAN DENGAN KOLOM ASLI DATABASE: Menghapus transaction_type
-            cursor.execute("""
-                INSERT INTO transfer_logs (sender_name, account_number, recipient_bank, amount, admin_fee, total_pay, status, created_by, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, 'SUCCESS', 'engineer', NOW())
-            """, (sender_name, account_number, recipient_bank, amount, admin_fee, total_pay))
-            conn.commit()
-            cursor.close()
-            conn.close()
-        except Exception as e:
-            print("Failed to insert to DB:", e)
-
-    return render_template(
-        'transaksi.html',
-        receipt=receipt,
-        user='engineer',
-        role='Engineer'
-    )
-
-@app.route('/kalkulator', methods=['GET'])
-def kalkulator():
-    return render_template(
-        'kalkulator_modal.html',
-        user='engineer',
-        role='Engineer'
-    )
-
-@app.route('/delete/<int:id>', methods=['GET'])
-def delete_transaksi(id):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM transfer_logs WHERE id = %s", (id,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print("Failed to delete from DB:", e)
-    return redirect(url_for('dashboard'))
-
-if __name__ == '__main__':
-    app.run(debug=True)
